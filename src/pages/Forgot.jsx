@@ -187,7 +187,7 @@ const Forgot = () => {
         },
         { withCredentials: true },
       );
-
+      console.log(formData.email, OTP);
       toast.success(result.data.message || "OTP verified successfully!");
       setStep(3);
     } catch (error) {

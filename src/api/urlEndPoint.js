@@ -8,3 +8,10 @@ export const authURL = `${baseURL}/api/auth`;
 export const otpURL = `${baseURL}/api/otp`;
 
 // user api url
+export const userURL = `${baseURL}/api/user`;
+
+// meeting api url
+export const meetingURL = `${baseURL}/api/meetings`;
+
+// socket base url
+export const socketURL = baseURL;

@@ -1,23 +1,21 @@
-import React from "react";
+import React, { memo } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
 	Home,
 	User,
-	MessageSquare,
 	Settings,
 	LogOut,
 	Users,
 	Bell,
-	Compass,
+	UserGroup,
 } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
 
 const links = [
 	{ to: "/", label: "Home", icon: Home, end: true },
-	{ to: "/explore", label: "Explore", icon: Compass },
-	{ to: "/messages", label: "Messages", icon: MessageSquare },
+	{ to: "/meet", label: "Meet", icon: UserGroup, },
 	{ to: "/friends", label: "Friends", icon: Users },
 	{ to: "/notifications", label: "Notifications", icon: Bell },
 	{ to: "/profile", label: "Profile", icon: User },
