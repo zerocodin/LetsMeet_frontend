@@ -12,8 +12,11 @@ import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Landing from "./pages/Landing";
 import Settings from "./pages/Settings";
-import MediaTest from "./pages/MediaTest";
-import WebRTCTest from "./pages/WebRTCTest";
+import MediaTest from "./pages/MediaTest"; // testing purpose
+import WebRTCTest from "./pages/WebRTCTest"; // testing purpose
+import MeetingJoin from "./pages/MeetingJoin";
+import MeetingRoom from "./pages/MeetingRoom";
+import Meet from "./pages/Meet";
 
 function RequireAuth({ children }) {
 	const { isAuthenticated, loading } = useAuth();
@@ -105,6 +108,32 @@ const AppRoutes = () => (
 			}
 		/>
 
+		<Route
+			path="/meeting/:meetingCode"
+			element={
+				<RequireAuth>
+					<MeetingJoin />
+				</RequireAuth>
+			}
+		/>
+
+		<Route
+			path="/room/:meetingId"
+			element={
+				<RequireAuth>
+					<MeetingRoom />
+				</RequireAuth>
+			}
+		/>
+
+		<Route
+			path="/meet"
+			element={
+				<RequireAuth>
+					<Meet />
+				</RequireAuth>
+			}
+		/>
 		<Route path="*" element={<Navigate to="/" replace />} />
 	</Routes>
 );
