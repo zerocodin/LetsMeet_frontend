@@ -1,10 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { Camera, Mail, Lock, User as UserIcon, Loader2, LucidePowerOff, User } from "lucide-react";
+import {
+	Camera,
+	Mail,
+	Lock,
+	User as UserIcon,
+	Loader2,
+	LucidePowerOff,
+	User,
+} from "lucide-react";
 
-import Sidebar from "../components/layout/Sidebar";
 import userService from "../services/user.Service";
 import { useAuth } from "../context/AuthContext";
+import AppLayout from "../components/layout/AppLayout";
 
 export default function Profile() {
 	const { setUser } = useAuth();
@@ -36,7 +44,7 @@ export default function Profile() {
 		confirmPassword: "",
 	});
 
-	// ------- load profile -------
+	//    load profile
 	useEffect(() => {
 		(async () => {
 			try {
@@ -57,7 +65,7 @@ export default function Profile() {
 		})();
 	}, []);
 
-	// ------- update name / profession / bio -------
+	//    update name / profession / bio
 	const handleProfileSave = async (e) => {
 		e.preventDefault();
 		setSaving(true);
@@ -76,7 +84,7 @@ export default function Profile() {
 		}
 	};
 
-	// ------- upload avatar -------
+	//    upload avatar
 	const handleAvatarChange = async (e) => {
 		const file = e.target.files?.[0];
 		if (!file) return;
@@ -92,7 +100,7 @@ export default function Profile() {
 		}
 	};
 
-	// ------- email change -------
+	//    email change
 	const handleEmailRequest = async (e) => {
 		e.preventDefault();
 		try {
@@ -120,7 +128,7 @@ export default function Profile() {
 		}
 	};
 
-	// ------- password change -------
+	//    password change
 	const handlePasswordSave = async (e) => {
 		e.preventDefault();
 		try {
@@ -137,208 +145,197 @@ export default function Profile() {
 	};
 
 	if (loading) {
-		return (
-			<div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50">
-				<Sidebar />
-				<main className="ml-64 flex min-h-screen items-center justify-center p-8">
-					<Loader2 className="h-6 w-6 animate-spin text-[#3e4bc4]" />
-				</main>
-			</div>
-		);
-	}
+    return (
+        <AppLayout>
+            <div className="flex min-h-[60vh] items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-[#3e4bc4]" />
+            </div>
+        </AppLayout>
+    );
+}
 
 	return (
-		<div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50">
-			<Sidebar />
+		<AppLayout>
+			<h1 className="mb-8 text-3xl font-bold text-gray-800">
+				Profile Settings
+			</h1>
 
-			<main className="ml-64 min-h-screen p-8">
-				<h1 className="mb-8 text-3xl font-bold text-gray-800">
-					Profile Settings
-				</h1>
-
-				{/* ---------- Profile card ---------- */}
-				<div className="mb-6 rounded-2xl border border-white/60 bg-white/70 p-6 shadow-md backdrop-blur-lg">
-					<div className="flex items-center gap-6">
-						<div className="relative">
-							{profile.profileImage ? (
-								<img
-									src={profile.profileImage}
-									alt="avatar"
-									className="h-24 w-24 rounded-full object-cover ring-4 ring-white shadow-md"
-								/>
-							) : (
-								<div className="flex h-24 w-24 items-center justify-center rounded-full bg-linear-to-br from-[#3e4bc4] to-[#8B5CF6] text-3xl font-bold text-white shadow-md">
-									{(profile.name || "U").charAt(0).toUpperCase()}
-								</div>
-							)}
-							<button
-								onClick={() => fileInputRef.current?.click()}
-								className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-50"
-							>
-								<Camera className="h-4 w-4 text-[#3e4bc4]" />
-							</button>
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept="image/*"
-								className="hidden"
-								onChange={handleAvatarChange}
+			{/*   --- Profile card   --- */}
+			<div className="mb-6 rounded-2xl border border-white/60 bg-white/70 p-6 shadow-md backdrop-blur-lg">
+				<div className="flex items-center gap-6">
+					<div className="relative">
+						{profile.profileImage ? (
+							<img
+								src={profile.profileImage}
+								alt="avatar"
+								className="h-24 w-24 rounded-full object-cover ring-4 ring-white shadow-md"
 							/>
-						</div>
+						) : (
+							<div className="flex h-24 w-24 items-center justify-center rounded-full bg-linear-to-br from-[#3e4bc4] to-[#8B5CF6] text-3xl font-bold text-white shadow-md">
+								{(profile.name || "U").charAt(0).toUpperCase()}
+							</div>
+						)}
+						<button
+							onClick={() => fileInputRef.current?.click()}
+							className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-50"
+						>
+							<Camera className="h-4 w-4 text-[#3e4bc4]" />
+						</button>
+						<input
+							ref={fileInputRef}
+							type="file"
+							accept="image/*"
+							className="hidden"
+							onChange={handleAvatarChange}
+						/>
+					</div>
 
-						<div>
-							<h2 className="text-xl font-bold text-gray-800">
-								{profile.name}
-							</h2>
-							<p className="text-sm text-gray-500">@{profile.username}</p>
+					<div>
+						<h2 className="text-xl font-bold text-gray-800">{profile.name}</h2>
+						<p className="text-sm text-gray-500">@{profile.username}</p>
 
-							{profile.profession && (
-								<div className="flex gap-1">
-									<User className="h-4 w-4 text-[#3e4bc4]" />
-									<p className="text-sm text-gray-500">{profile.profession}</p>
-								</div>
-							)}
-							<p className="mt-1 text-sm text-gray-600">{profile.email}</p>
-						</div>
+						{profile.profession && (
+							<div className="flex gap-1">
+								<User className="h-4 w-4 text-[#3e4bc4]" />
+								<p className="text-sm text-gray-500">{profile.profession}</p>
+							</div>
+						)}
+						<p className="mt-1 text-sm text-gray-600">{profile.email}</p>
 					</div>
 				</div>
+			</div>
 
-				{/* ---------- Basic info ---------- */}
-				<section className="mb-6 rounded-2xl border border-white/60 bg-white/70 p-6 shadow-md backdrop-blur-lg">
-					<h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-800">
-						<UserIcon className="h-4 w-4" /> Basic Info
-					</h3>
+			{/*   --- Basic info   --- */}
+			<section className="mb-6 rounded-2xl border border-white/60 bg-white/70 p-6 shadow-md backdrop-blur-lg">
+				<h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-800">
+					<UserIcon className="h-4 w-4" /> Basic Info
+				</h3>
 
-					<form onSubmit={handleProfileSave} className="space-y-4">
-						<div>
-							<label className="mb-1 block text-sm font-medium text-gray-700">
-								Full Name
-							</label>
-							<input
-								value={profile.name}
-								onChange={(e) =>
-									setProfile({ ...profile, name: e.target.value })
-								}
-								className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
-							/>
-						</div>
-
-						<div>
-							<label className="mb-1 block text-sm font-medium text-gray-700">
-								Profession
-							</label>
-							<input
-								value={profile.profession}
-								onChange={(e) =>
-									setProfile({ ...profile, profession: e.target.value })
-								}
-								className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
-							/>
-						</div>
-
-						<div>
-							<label className="mb-1 block text-sm font-medium text-gray-700">
-								Bio
-							</label>
-							<textarea
-								rows={3}
-								maxLength={200}
-								value={profile.bio}
-								onChange={(e) =>
-									setProfile({ ...profile, bio: e.target.value })
-								}
-								className="w-full resize-none rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
-								placeholder="Tell us about yourself…"
-							/>
-							<p className="mt-1 text-xs text-gray-400">
-								{profile.bio.length}/200
-							</p>
-						</div>
-
-						<button
-							disabled={saving}
-							className="rounded-lg bg-linear-to-r from-[#3e4bc4] to-[#8B5CF6] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:scale-[1.02] disabled:opacity-60"
-						>
-							{saving ? "Saving…" : "Save changes"}
-						</button>
-					</form>
-				</section>
-
-				{/* ---------- Email ---------- */}
-				<section className="mb-6 rounded-2xl border border-white/60 bg-white/70 p-6 shadow-md backdrop-blur-lg">
-					<h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-800">
-						<Mail className="h-4 w-4" /> Change Email
-					</h3>
-						<form onSubmit={handleEmailRequest} className="space-y-4">
-							<input
-								type="email"
-								required
-								placeholder="New email"
-								value={emailForm.newEmail}
-								onChange={(e) =>
-									setEmailForm({ ...emailForm, newEmail: e.target.value })
-								}
-								className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
-							/>
-							<input
-								type="password"
-								required
-								placeholder="Current password"
-								value={emailForm.password}
-								onChange={(e) =>
-									setEmailForm({ ...emailForm, password: e.target.value })
-								}
-								className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
-							/>
-							<button className="rounded-lg bg-linear-to-r from-[#3e4bc4] to-[#8B5CF6] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:scale-[1.02]">
-								Change email
-							</button>
-						</form>
-				</section>
-
-				{/* ---------- Password ---------- */}
-				<section className="mb-6 rounded-2xl border border-white/60 bg-white/70 p-6 shadow-md backdrop-blur-lg">
-					<h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-800">
-						<Lock className="h-4 w-4" /> Change Password
-					</h3>
-
-					<form onSubmit={handlePasswordSave} className="space-y-4">
+				<form onSubmit={handleProfileSave} className="space-y-4">
+					<div>
+						<label className="mb-1 block text-sm font-medium text-gray-700">
+							Full Name
+						</label>
 						<input
-							type="password"
-							required
-							placeholder="Current password"
-							value={pwdForm.currentPassword}
+							value={profile.name}
+							onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+							className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
+						/>
+					</div>
+
+					<div>
+						<label className="mb-1 block text-sm font-medium text-gray-700">
+							Profession
+						</label>
+						<input
+							value={profile.profession}
 							onChange={(e) =>
-								setPwdForm({ ...pwdForm, currentPassword: e.target.value })
+								setProfile({ ...profile, profession: e.target.value })
 							}
 							className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
 						/>
-						<input
-							type="password"
-							required
-							placeholder="New password"
-							value={pwdForm.newPassword}
-							onChange={(e) =>
-								setPwdForm({ ...pwdForm, newPassword: e.target.value })
-							}
-							className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
+					</div>
+
+					<div>
+						<label className="mb-1 block text-sm font-medium text-gray-700">
+							Bio
+						</label>
+						<textarea
+							rows={3}
+							maxLength={200}
+							value={profile.bio}
+							onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+							className="w-full resize-none rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
+							placeholder="Tell us about yourself…"
 						/>
-						<input
-							type="password"
-							required
-							placeholder="Confirm new password"
-							value={pwdForm.confirmPassword}
-							onChange={(e) =>
-								setPwdForm({ ...pwdForm, confirmPassword: e.target.value })
-							}
-							className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
-						/>
-						<button className="rounded-lg bg-linear-to-r from-[#3e4bc4] to-[#8B5CF6] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:scale-[1.02]">
-							Update password
-						</button>
-					</form>
-				</section>
-			</main>
-		</div>
+						<p className="mt-1 text-xs text-gray-400">
+							{profile.bio.length}/200
+						</p>
+					</div>
+
+					<button
+						disabled={saving}
+						className="rounded-lg bg-linear-to-r from-[#3e4bc4] to-[#8B5CF6] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:scale-[1.02] disabled:opacity-60"
+					>
+						{saving ? "Saving…" : "Save changes"}
+					</button>
+				</form>
+			</section>
+
+			{/*   --- Email   --- */}
+			<section className="mb-6 rounded-2xl border border-white/60 bg-white/70 p-6 shadow-md backdrop-blur-lg">
+				<h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-800">
+					<Mail className="h-4 w-4" /> Change Email
+				</h3>
+				<form onSubmit={handleEmailRequest} className="space-y-4">
+					<input
+						type="email"
+						required
+						placeholder="New email"
+						value={emailForm.newEmail}
+						onChange={(e) =>
+							setEmailForm({ ...emailForm, newEmail: e.target.value })
+						}
+						className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
+					/>
+					<input
+						type="password"
+						required
+						placeholder="Current password"
+						value={emailForm.password}
+						onChange={(e) =>
+							setEmailForm({ ...emailForm, password: e.target.value })
+						}
+						className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
+					/>
+					<button className="rounded-lg bg-linear-to-r from-[#3e4bc4] to-[#8B5CF6] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:scale-[1.02]">
+						Change email
+					</button>
+				</form>
+			</section>
+
+			{/*   --- Password   --- */}
+			<section className="mb-6 rounded-2xl border border-white/60 bg-white/70 p-6 shadow-md backdrop-blur-lg">
+				<h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-800">
+					<Lock className="h-4 w-4" /> Change Password
+				</h3>
+
+				<form onSubmit={handlePasswordSave} className="space-y-4">
+					<input
+						type="password"
+						required
+						placeholder="Current password"
+						value={pwdForm.currentPassword}
+						onChange={(e) =>
+							setPwdForm({ ...pwdForm, currentPassword: e.target.value })
+						}
+						className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
+					/>
+					<input
+						type="password"
+						required
+						placeholder="New password"
+						value={pwdForm.newPassword}
+						onChange={(e) =>
+							setPwdForm({ ...pwdForm, newPassword: e.target.value })
+						}
+						className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
+					/>
+					<input
+						type="password"
+						required
+						placeholder="Confirm new password"
+						value={pwdForm.confirmPassword}
+						onChange={(e) =>
+							setPwdForm({ ...pwdForm, confirmPassword: e.target.value })
+						}
+						className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
+					/>
+					<button className="rounded-lg bg-linear-to-r from-[#3e4bc4] to-[#8B5CF6] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:scale-[1.02]">
+						Update password
+					</button>
+				</form>
+			</section>
+		</AppLayout>
 	);
 }

@@ -82,7 +82,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 overflow-x-hidden">
-      {/* ================= NAVBAR ================= */}
+      {/*   NAVBAR   */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/40 bg-white/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           {/* Logo */}
@@ -112,7 +112,7 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* ================= HERO ================= */}
+      {/*   HERO   */}
       <section className="relative overflow-hidden pt-32 pb-20">
         {/* Animated background blobs */}
         <div className="pointer-events-none absolute inset-0 -z-10">
@@ -264,7 +264,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ================= STATS ================= */}
+      {/*   STATS   */}
       <section className="relative py-12">
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid grid-cols-2 gap-6 rounded-3xl border border-white/60 bg-white/60 p-8 shadow-lg backdrop-blur-xl sm:grid-cols-4">
@@ -286,7 +286,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ================= FEATURES ================= */}
+      {/*   FEATURES   */}
       <section id="features" className="relative py-20">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-14 text-center">
@@ -329,7 +329,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ================= CTA ================= */}
+      {/*   CTA   */}
       <section className="relative py-20">
         <div className="mx-auto max-w-4xl px-6">
           <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#3e4bc4] to-[#8B5CF6] p-10 text-center shadow-2xl sm:p-14">
@@ -365,7 +365,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ================= FOOTER ================= */}
+      {/*   FOOTER   */}
       <footer className="border-t border-white/40 bg-white/60 py-8 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
           <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* ================= KEYFRAMES (injected) ================= */}
+      {/*   KEYFRAMES (injected)   */}
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }

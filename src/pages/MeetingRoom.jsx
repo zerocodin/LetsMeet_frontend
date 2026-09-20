@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { useMeeting } from "../context/MeetingContext";
@@ -8,18 +8,28 @@ import { useMediaDevices } from "../hooks/useMediaDevices";
 import { useWebRTC } from "../hooks/useWebRTC";
 import { useMediaSync } from "../hooks/useMediaSync";
 import { useActiveSpeaker } from "../hooks/useActiveSpeaker";
-import { useMeetingEvents } from "../hooks/useMeetingEvents"; 
+import { useMeetingEvents } from "../hooks/useMeetingEvents";
+import { useRecorder } from "../hooks/useRecorder";
+import { useRoomShortcuts } from "../hooks/useRoomShortcuts";
+import { useParticipantToasts } from "../hooks/useParticipantToasts";
 
 import RoomHeader from "../components/room/RoomHeader";
 import VideoGrid from "../components/room/VideoGrid";
 import ControlBar from "../components/room/ControlBar";
-import ParticipantsPanel from "../components/room/ParticipantsPanel";   
-import LeaveConfirmModal from "../components/room/LeaveConfirmModal";  
+import ParticipantsPanel from "../components/room/ParticipantsPanel";
+import LeaveConfirmModal from "../components/room/LeaveConfirmModal";
 import ChatPanel from "../components/room/ChatPanel";
+import meetingService from "../services/meeting.Service";
+
+import { isSoundEnabled, setSoundEnabled } from "../lib/sound";
 
 export default function MeetingRoom() {
 	const { meetingId } = useParams();
 	const navigate = useNavigate();
+
+	const [soundEnabled, setSoundEnabledState] = useState(isSoundEnabled());
+
+	// const { unreadChatCount } = useMeeting();
 
 	const {
 		meeting,
@@ -42,6 +52,10 @@ export default function MeetingRoom() {
 		hostPromote,
 		hostDemote,
 		hostEndForAll,
+		remoteIsRecording,
+		broadcastRecordingStart,
+		broadcastRecordingStop,
+		unreadChatCount,
 	} = useMeeting();
 
 	const localStreamRef = useRef(null);
@@ -58,6 +72,18 @@ export default function MeetingRoom() {
 
 	const isHost =
 		myParticipant?.role === "HOST" || myParticipant?.role === "COHOST";
+
+	// Custom hooks (must all be unconditional)
+	useParticipantToasts(participants, !bootstrapping);
+
+	const toggleSound = useCallback(() => {
+		const next = !soundEnabled;
+		setSoundEnabled(next);
+		setSoundEnabledState(next);
+		toast(next ? "Notification sounds on" : "Notification sounds off", {
+			icon: next ? "🔔" : "🔕",
+		});
+	}, [soundEnabled]);
 
 	// Ensure we're joined
 	useEffect(() => {
@@ -95,10 +121,10 @@ export default function MeetingRoom() {
 	);
 
 	useMediaDevices({
-		startCamera: !myParticipant?.isCameraOff,
-		startMic: !myParticipant?.isMuted,
-		onStreamReady: handleStreamReady,
-	});
+	startCamera: !myParticipant?.isCameraOff,
+	startMic: !myParticipant?.isMuted,
+	onStreamReady: handleStreamReady,
+});
 
 	// WebRTC
 	useWebRTC({
@@ -119,6 +145,8 @@ export default function MeetingRoom() {
 			participants.find((p) => p.socketId === socketId),
 	});
 
+	useMeetingEvents();
+
 	// Active speaker detection — now receives the state-backed stream
 	const activeSpeaker = useActiveSpeaker({
 		localStream,
@@ -135,8 +163,6 @@ export default function MeetingRoom() {
 		},
 	});
 
-	useMeetingEvents();
-	
 	useEffect(() => {
 		applyMediaState(isMuted, isCameraOff);
 	}, [isMuted, isCameraOff, applyMediaState]);
@@ -151,6 +177,7 @@ export default function MeetingRoom() {
 		setShowLeaveModal(false);
 		try {
 			await leave();
+			// navigate('/meet');
 		} catch (err) {
 			toast.error(err.message || "Failed to leave");
 		}
@@ -164,6 +191,73 @@ export default function MeetingRoom() {
 			toast.error(err.message || "Failed to end meeting");
 		}
 	}, [hostEndForAll]);
+
+	// Recorder — records the LOCAL stream
+	const {
+		isRecording,
+		start: startRecording,
+		stop: stopRecording,
+	} = useRecorder({ streamRef: localStreamRef });
+
+	// Recording toggle (host only)
+	const handleToggleRecording = useCallback(async () => {
+		if (!isHost) return;
+
+		if (!isRecording) {
+			const ok = startRecording();
+			if (ok) {
+				broadcastRecordingStart();
+				try {
+					await meetingService.setRecording(meetingId, true);
+				} catch (err) {
+					console.error("Failed to persist recording flag:", err);
+				}
+			}
+		} else {
+			stopRecording();
+			broadcastRecordingStop();
+			try {
+				await meetingService.setRecording(meetingId, false);
+			} catch (err) {
+				console.error("Failed to persist recording flag:", err);
+			}
+		}
+	}, [
+		isHost,
+		isRecording,
+		startRecording,
+		stopRecording,
+		broadcastRecordingStart,
+		broadcastRecordingStop,
+		meetingId,
+	]);
+
+	useRoomShortcuts({
+		onToggleMute: toggleMute,
+		onToggleCamera: toggleCamera,
+		onToggleScreenShare: toggleScreenShare,
+		onToggleChat: () => {
+			setShowChat((v) => !v);
+			if (!showChat) setShowPeople(false);
+		},
+		onTogglePeople: () => {
+			setShowPeople((v) => !v);
+			if (!showPeople) setShowChat(false);
+		},
+		onLeave: () => setShowLeaveModal(true),
+		onToggleRecording: isHost ? handleToggleRecording : undefined,
+	});
+
+	// Auto-stop recording when leaving
+	useEffect(() => {
+		return () => {
+			if (isRecording) {
+				try {
+					stopRecording();
+				} catch {}
+			}
+		};
+	}, []);
 
 	// Render
 	if (bootstrapping || !meeting) {
@@ -181,9 +275,12 @@ export default function MeetingRoom() {
 				meeting={meeting}
 				participantCount={participants.length + 1}
 				startedAt={meeting.startedAt || meeting.scheduledAt}
+				isAnyoneRecording={isRecording || remoteIsRecording}
+				recordingBy={isRecording ? "you" : remoteIsRecording ? "host" : null}
 			/>
 
 			<main className="flex flex-1 overflow-hidden">
+				{/* Video area */}
 				<div className="flex-1 overflow-hidden">
 					<VideoGrid
 						localStream={localStream}
@@ -194,26 +291,56 @@ export default function MeetingRoom() {
 					/>
 				</div>
 
-				{showPeople && (
-					<aside className="w-80 border-l border-white/5 bg-gray-900/60 backdrop-blur">
-						<ParticipantsPanel
-							participants={participants}
-							myParticipant={myParticipant}
-							meeting={meeting}
-							isHost={isHost}
-							onMute={hostMute}
-							onUnmute={hostUnmute}
-							onRemove={hostRemove}
-							onPromote={hostPromote}
-							onDemote={hostDemote}
+				{/* Right panel — desktop rail OR mobile overlay */}
+				{(showPeople || showChat) && (
+					<>
+						{/* Mobile backdrop (only shows < lg) */}
+						<div
+							onClick={() => {
+								setShowChat(false);
+								setShowPeople(false);
+							}}
+							className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden"
 						/>
-					</aside>
-				)}
 
-				{showChat && (
-					<aside className="w-80 border-l border-white/5 bg-gray-900/60 backdrop-blur">
-						<ChatPanel meetingId={meetingId} />
-					</aside>
+						{/* Panel container */}
+						<aside
+							className="
+					fixed inset-x-0 bottom-0 top-14 z-40
+					w-full border-t border-white/5 bg-gray-900/95 backdrop-blur
+					lg:static lg:inset-auto lg:z-0 lg:w-80 lg:border-l lg:border-t-0
+				"
+						>
+							{/* Close button for mobile */}
+							<div className="flex items-center justify-end px-3 pt-2 lg:hidden">
+								<button
+									onClick={() => {
+										setShowChat(false);
+										setShowPeople(false);
+									}}
+									className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 hover:text-white"
+								>
+									<X className="h-4 w-4" />
+								</button>
+							</div>
+
+							{showPeople ? (
+								<ParticipantsPanel
+									participants={participants}
+									myParticipant={myParticipant}
+									meeting={meeting}
+									isHost={isHost}
+									onMute={hostMute}
+									onUnmute={hostUnmute}
+									onRemove={hostRemove}
+									onPromote={hostPromote}
+									onDemote={hostDemote}
+								/>
+							) : (
+								<ChatPanel meetingId={meetingId} />
+							)}
+						</aside>
+					</>
 				)}
 			</main>
 
@@ -221,10 +348,13 @@ export default function MeetingRoom() {
 				isMuted={isMuted}
 				isCameraOff={isCameraOff}
 				isScreenSharing={isScreenSharing}
-				isHost={isHost}
 				showChat={showChat}
 				showPeople={showPeople}
+				isHost={myParticipant?.role === "HOST"} // only true host
+				isRecording={isRecording}
+				onToggleRecording={handleToggleRecording}
 				onToggleMute={toggleMute}
+				unreadChatCount={unreadChatCount}
 				onToggleCamera={toggleCamera}
 				onToggleScreenShare={toggleScreenShare}
 				onToggleChat={() => {

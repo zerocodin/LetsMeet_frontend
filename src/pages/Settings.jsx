@@ -10,7 +10,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-import Sidebar from "../components/layout/Sidebar";
+import AppLayout from "../components/layout/AppLayout";
 import { useAuth } from "../context/AuthContext";
 import authService from "../services/auth.Service";
 
@@ -70,10 +70,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <Sidebar />
-
-      <main className="ml-64 min-h-screen p-8">
+      <AppLayout>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Settings</h1>
@@ -236,7 +233,6 @@ export default function Settings() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+      </AppLayout>
   );
 }
