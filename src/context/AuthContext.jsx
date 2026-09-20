@@ -25,7 +25,6 @@ export function AuthProvider({ children }) {
 	const checkAuth = useCallback(async () => {
 		//    Skip the /me call entirely if there's no session flag cookie.
 		//    This prevents the 401 from ever hitting the network tab
-		//    for anonymous visitors.
 		const hasSession = getCookie("logged_in");
 
 		if (!hasSession) {
