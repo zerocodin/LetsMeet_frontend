@@ -1,12 +1,20 @@
 import React, { useState } from "react";
-import { Loader2, Lock, Calendar, Clock, Users, FileText } from "lucide-react";
+import {
+	Loader2,
+	Lock,
+	Calendar,
+	Clock,
+	Users,
+	FileText,
+	UserPlus,
+	X,
+} from "lucide-react";
 
 export default function CreateMeetingForm({
 	onSubmit,
 	isSubmitting,
 	mode = "schedule",
 }) {
-	// Default scheduledAt = 30 minutes from now, rounded to nearest 15 min
 	const defaultDate = (() => {
 		const d = new Date();
 		d.setMinutes(d.getMinutes() + 30);
@@ -17,7 +25,7 @@ export default function CreateMeetingForm({
 	const [form, setForm] = useState({
 		title: "",
 		description: "",
-		scheduledAt: defaultDate.toISOString().slice(0, 16), // yyyy-MM-ddTHH:mm
+		scheduledAt: defaultDate.toISOString().slice(0, 16),
 		duration: 60,
 		isPrivate: false,
 		password: "",
@@ -41,10 +49,10 @@ export default function CreateMeetingForm({
 				password: null,
 				maxParticipants: 100,
 				waitingRoomEnabled: false,
+				invitedUsers: [], // not used in instant mode
 			});
 		}
 
-		// schedule mode
 		onSubmit({
 			title: form.title,
 			description: form.description,
@@ -57,7 +65,7 @@ export default function CreateMeetingForm({
 		});
 	};
 
-	// Quick "Start now" UI
+	//  Quick "Start now" UI 
 	if (mode === "now") {
 		return (
 			<form onSubmit={handleSubmit} className="space-y-4">
@@ -93,7 +101,7 @@ export default function CreateMeetingForm({
 		);
 	}
 
-	// Full schedule form
+	//  Full schedule form 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-4">
 			{/* Title */}
@@ -128,7 +136,7 @@ export default function CreateMeetingForm({
 				/>
 			</div>
 
-			{/* Date + Duration (2 columns) */}
+			{/* Date + Duration */}
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div>
 					<label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-700">
@@ -178,6 +186,9 @@ export default function CreateMeetingForm({
 					className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-[#3e4bc4] focus:ring-2 focus:ring-[#3e4bc4]/20"
 				/>
 			</div>
+
+			{/*  NEW: Invite friends  */}
+			
 
 			{/* Private + password */}
 			<div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">

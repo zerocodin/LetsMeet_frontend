@@ -1,6 +1,13 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Link2, KeyRound, Lock, ArrowRight, Calendar } from "lucide-react";
+import {
+	Link2,
+	KeyRound,
+	Lock,
+	ArrowRight,
+	Calendar,
+	UserPlus,
+} from "lucide-react";
 import CopyButton from "../ui/CopyButton";
 
 /**
@@ -8,9 +15,11 @@ import CopyButton from "../ui/CopyButton";
  *   { meetingCode, meetingLink, password, scheduledAt, title }
  * @param {Function} onClose
  */
-export default function CredentialsCard({ credentials, onClose }) {
+export default function CredentialsCard({ credentials, onClose, onInviteNow }) {
 	const navigate = useNavigate();
-	const { meetingCode, meetingLink, password, scheduledAt, title } = credentials;
+
+	const { meetingCode, meetingLink, password, scheduledAt, title } =
+		credentials;
 
 	const startNow = () => {
 		onClose?.();
@@ -61,6 +70,15 @@ export default function CredentialsCard({ credentials, onClose }) {
 						dateStyle: "medium",
 						timeStyle: "short",
 					})}
+				</div>
+			)}
+
+			{/* Invite friends after creation */}
+			{onInviteNow && (
+				<div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+					<p className="text-sm font-semibold text-emerald-700">
+						Invite Friend form Meeting Details
+					</p>
 				</div>
 			)}
 

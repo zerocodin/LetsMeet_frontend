@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Clock, Loader2, Video, ArrowLeft } from "lucide-react";
+import { Clock, Loader2, Video, ArrowLeft, Play } from "lucide-react";
 
 /**
  * @param {Object} meeting  — { title, meetingCode, scheduledAt, host }
@@ -14,8 +14,11 @@ export default function WaitingRoom({
 	onRetry,
 	onBack,
 	retrying,
+	isHost = false,
+	onStartNow,
 }) {
 	const [secondsLeft, setSecondsLeft] = useState(startsIn);
+	const [starting, setStarting] = useState(false);
 	const retriedRef = useRef(false);
 
 	// Tick down every second
@@ -41,6 +44,15 @@ export default function WaitingRoom({
 		}
 	}, [startsIn, onRetry]);
 
+	const handleStartNow = async () => {
+		setStarting(true);
+		try {
+			await onStartNow?.();
+		} finally {
+			setStarting(false);
+		}
+	};
+
 	const mm = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
 	const ss = String(secondsLeft % 60).padStart(2, "0");
 
@@ -48,7 +60,7 @@ export default function WaitingRoom({
 		? new Date(meeting.scheduledAt).toLocaleString(undefined, {
 				dateStyle: "medium",
 				timeStyle: "short",
-		  })
+			})
 		: "";
 
 	return (
@@ -91,6 +103,36 @@ export default function WaitingRoom({
 						</p>
 					)}
 				</div>
+
+				{/* Host start now panel */}
+				{isHost && secondsLeft > 0 && (
+					<div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+						<p className="text-xs font-semibold text-emerald-700">
+							You're the host
+						</p>
+						<p className="mt-1 text-xs text-emerald-600">
+							Start the meeting now — everyone waiting will be let in.
+						</p>
+						<button
+							type="button"
+							onClick={handleStartNow}
+							disabled={starting || retrying}
+							className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-linear-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:scale-[1.02] disabled:opacity-60"
+						>
+							{starting ? (
+								<>
+									<Loader2 className="h-4 w-4 animate-spin" />
+									Starting...
+								</>
+							) : (
+								<>
+									<Play className="h-4 w-4" />
+									Start meeting now
+								</>
+							)}
+						</button>
+					</div>
+				)}
 
 				{/* Info line */}
 				<div className="mb-4 rounded-lg bg-gray-50 px-4 py-3 text-xs text-gray-600">
