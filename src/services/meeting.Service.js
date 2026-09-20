@@ -105,7 +105,10 @@ const meetingService = {
 	},
 
 	// Update my media state (persist to DB)
-	updateMyState: async (meetingId, { isMuted, isCameraOff, isScreenSharing }) => {
+	updateMyState: async (
+		meetingId,
+		{ isMuted, isCameraOff, isScreenSharing },
+	) => {
 		try {
 			const { data } = await api.patch(`/${meetingId}/me/state`, {
 				isMuted,
@@ -138,11 +141,11 @@ const meetingService = {
 		}
 	},
 
-	// Host: mute / unmute participant 
+	// Host: mute / unmute participant
 	muteParticipant: async (meetingId, participantId) => {
 		try {
 			const { data } = await api.patch(
-				`/${meetingId}/participants/${participantId}/mute`
+				`/${meetingId}/participants/${participantId}/mute`,
 			);
 			return data;
 		} catch (error) {
@@ -153,7 +156,7 @@ const meetingService = {
 	unmuteParticipant: async (meetingId, participantId) => {
 		try {
 			const { data } = await api.patch(
-				`/${meetingId}/participants/${participantId}/unmute`
+				`/${meetingId}/participants/${participantId}/unmute`,
 			);
 			return data;
 		} catch (error) {
@@ -161,11 +164,11 @@ const meetingService = {
 		}
 	},
 
-	// Host: remove participant 
+	// Host: remove participant
 	removeParticipant: async (meetingId, participantId) => {
 		try {
 			const { data } = await api.delete(
-				`/${meetingId}/participants/${participantId}`
+				`/${meetingId}/participants/${participantId}`,
 			);
 			return data;
 		} catch (error) {
@@ -177,22 +180,95 @@ const meetingService = {
 	promoteToCohost: async (meetingId, participantId) => {
 		try {
 			const { data } = await api.patch(
-				`/${meetingId}/participants/${participantId}/promote`
+				`/${meetingId}/participants/${participantId}/promote`,
 			);
 			return data;
 		} catch (error) {
-			throw error.response?.data || { message: "Failed to promote participant" };
+			throw (
+				error.response?.data || { message: "Failed to promote participant" }
+			);
 		}
 	},
 
 	demoteFromCohost: async (meetingId, participantId) => {
 		try {
 			const { data } = await api.patch(
-				`/${meetingId}/participants/${participantId}/demote`
+				`/${meetingId}/participants/${participantId}/demote`,
 			);
 			return data;
 		} catch (error) {
 			throw error.response?.data || { message: "Failed to demote participant" };
+		}
+	},
+
+	setRecording: async (meetingId, isRecording) => {
+		try {
+			const { data } = await api.patch(`/${meetingId}/recording`, {
+				isRecording,
+			});
+			return data;
+		} catch (error) {
+			throw error.response?.data || { message: "Failed to update recording" };
+		}
+	},
+
+	getParticipantHistory: async (meetingId) => {
+		try {
+			const { data } = await api.get(`/${meetingId}/participants/history`);
+			return data;
+		} catch (error) {
+			throw error.response?.data || { message: "Failed to load history" };
+		}
+	},
+
+	// Invite users (host only)
+	inviteUsers: async (meetingId, userIds) => {
+		try {
+			const { data } = await api.post(`/${meetingId}/invite`, { userIds });
+			return data;
+		} catch (error) {
+			throw error.response?.data || { message: "Failed to invite users" };
+		}
+	},
+
+	// Remove an invite
+	removeInvite: async (meetingId, userId) => {
+		try {
+			const { data } = await api.delete(`/${meetingId}/invite/${userId}`);
+			return data;
+		} catch (error) {
+			throw error.response?.data || { message: "Failed to remove invite" };
+		}
+	},
+
+	// Get invite candidates (friends not yet invited)
+	getInviteCandidates: async (meetingId) => {
+		try {
+			const { data } = await api.get(`/${meetingId}/invite/candidates`);
+			return data;
+		} catch (error) {
+			throw error.response?.data || { message: "Failed to load candidates" };
+		}
+	},
+
+	// Host force-starts a scheduled meeting
+	startNow: async (meetingId) => {
+		try {
+			const { data } = await api.post(`/${meetingId}/start-now`);
+			return data;
+		} catch (error) {
+			throw error.response?.data || { message: "Failed to start meeting" };
+		}
+	},
+
+	stopScreenShare: async (meetingId, participantId) => {
+		try {
+			const { data } = await api.post(
+				`/${meetingId}/participants/${participantId}/stop-share`,
+			);
+			return data;
+		} catch (error) {
+			throw error.response?.data || { message: "Failed to stop screen share" };
 		}
 	},
 };
