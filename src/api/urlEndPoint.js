@@ -1,5 +1,5 @@
 // base url
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const baseURL = import.meta.env.VITE_API_URL;
 
 // auth api url 
 export const authURL = `${baseURL}/api/auth`;

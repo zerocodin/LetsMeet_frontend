@@ -17,6 +17,11 @@ import WebRTCTest from "./pages/WebRTCTest"; // testing purpose
 import MeetingJoin from "./pages/MeetingJoin";
 import MeetingRoom from "./pages/MeetingRoom";
 import Meet from "./pages/Meet";
+import Friends from "./pages/Friends";
+import Notifications from "./pages/Notifications";
+
+import { NotificationProvider } from "./context/NotificationContext";
+import { useSocketConnection } from "./hooks/useSocketConnection";
 
 function RequireAuth({ children }) {
 	const { isAuthenticated, loading } = useAuth();
@@ -38,6 +43,11 @@ function LandingGate() {
 	if (isAuthenticated) return <Navigate to="/home" replace />;
 	return <Landing />;
 }
+
+const GlobalSocket = ({ children }) => {
+	useSocketConnection();
+	return children;
+};
 
 const AppRoutes = () => (
 	<Routes>
@@ -134,16 +144,38 @@ const AppRoutes = () => (
 				</RequireAuth>
 			}
 		/>
+
+		<Route
+			path="/friends"
+			element={
+				<RequireAuth>
+					<Friends />
+				</RequireAuth>
+			}
+		/>
+
+		<Route
+			path="/notifications"
+			element={
+				<RequireAuth>
+					<Notifications />
+				</RequireAuth>
+			}
+		/>
+
 		<Route path="*" element={<Navigate to="/" replace />} />
 	</Routes>
 );
 
 const App = () => (
 	<AuthProvider>
-		{/* <AppRoutes /> */}
-		<MeetingProvider>
-			<AppRoutes />
-		</MeetingProvider>
+		<NotificationProvider>
+			<GlobalSocket>
+				<MeetingProvider>
+					<AppRoutes />
+				</MeetingProvider>
+			</GlobalSocket>
+		</NotificationProvider>
 		<Toaster
 			position="top-right"
 			toastOptions={{
