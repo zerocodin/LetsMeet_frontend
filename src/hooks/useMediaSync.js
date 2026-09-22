@@ -23,7 +23,7 @@ export const useMediaSync = ({
 	const lastCameraOff = useRef(null);
 	const lastSharing = useRef(null);
 
-	// Mic + camera track enable/disable 
+	// Mic + camera track enable/disable
 	// Fired on any state change by calling code with the context values.
 	// We can't use context directly here to keep this hook reusable.
 	//
@@ -66,12 +66,16 @@ export const useMediaSync = ({
 			// START screen share
 			try {
 				const screenStream = await navigator.mediaDevices.getDisplayMedia({
-					video: { cursor: "always" },
+					video: true, //{ cursor: "always" },
 					audio: false,
 				});
 				screenStreamRef.current = screenStream;
 
+				// const screenTrack = screenStream.getVideoTracks()[0];
 				const screenTrack = screenStream.getVideoTracks()[0];
+				try {
+					await screenTrack.applyConstraints({ cursor: "always" });
+				} catch {}
 
 				// If user clicks the browser's native "Stop sharing",
 				// we need to notify the app so context also flips off.
@@ -118,8 +122,7 @@ export const useMediaSync = ({
 			// STOP screen share — revert to camera track
 			const screenStream = screenStreamRef.current;
 
-			const cameraTrack =
-				localStreamRef.current?.getVideoTracks?.()[0] || null;
+			const cameraTrack = localStreamRef.current?.getVideoTracks?.()[0] || null;
 
 			if (cameraTrack) {
 				peers.forEach(async (pc, socketId) => {

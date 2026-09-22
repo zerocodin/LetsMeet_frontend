@@ -32,15 +32,15 @@ export const useMediaDevices = ({
 								width: { ideal: 1280 },
 								height: { ideal: 720 },
 								facingMode: "user",
-						  }
-						: false,
+							}
+						: { width: { ideal: 640 }, height: { ideal: 360 } },
 					audio: startMic
 						? {
 								echoCancellation: true,
 								noiseSuppression: true,
 								autoGainControl: true,
-						  }
-						: false,
+							}
+						: true,
 				};
 
 				const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -49,9 +49,16 @@ export const useMediaDevices = ({
 					return;
 				}
 
+				// Apply the initial enabled state
+				const videoTrack = stream.getVideoTracks()[0];
+				const audioTrack = stream.getAudioTracks()[0];
+
+				if (videoTrack) videoTrack.enabled = !!startCamera;
+				if (audioTrack) audioTrack.enabled = !!startMic;
+
 				localStreamRef.current = stream;
-				cameraTrackRef.current = stream.getVideoTracks()[0] || null;
-				micTrackRef.current = stream.getAudioTracks()[0] || null;
+				cameraTrackRef.current = videoTrack || null;
+				micTrackRef.current = audioTrack || null;
 
 				// Enumerate devices (labels become available after permission)
 				const allDevices = await navigator.mediaDevices.enumerateDevices();
@@ -73,7 +80,7 @@ export const useMediaDevices = ({
 				toast.error(
 					err.name === "NotAllowedError"
 						? "Camera/mic permission denied"
-						: "Unable to access camera or mic"
+						: "Unable to access camera or mic",
 				);
 			}
 		};

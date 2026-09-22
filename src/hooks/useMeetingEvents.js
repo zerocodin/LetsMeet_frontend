@@ -16,6 +16,8 @@ export const useMeetingEvents = () => {
 		isMuted,
 		toggleMute,
 		handleRemoteEnd,
+		isScreenSharing,
+		toggleScreenShare,
 	} = useMeeting();
 
 	// Use a ref so the listener doesn't need to be re-bound when isMuted changes
@@ -28,17 +30,16 @@ export const useMeetingEvents = () => {
 
 		// Host force-muted us
 		const onForceMuted = () => {
-			// Only flip if we're not already muted (avoids double toasts)
 			if (!isMutedRef.current) {
-				toggleMute();  // this flips local track + broadcasts back + persists
+				toggleMute();
 			}
 			toast("Host muted you", { icon: "🔇", duration: 2500 });
 		};
 
-		// Host kicked us 
+		// Host kicked us
 		const onKicked = () => {
 			toast.error("You were removed from the meeting");
-			handleRemoteEnd();  // navigates home + cleans up
+			handleRemoteEnd(); // navigates home + cleans up
 		};
 
 		// Host ended the meeting
@@ -47,14 +48,21 @@ export const useMeetingEvents = () => {
 			handleRemoteEnd();
 		};
 
+		const onForceStopShare = () => {
+			if (isScreenSharing) toggleScreenShare();
+			toast("Host stopped your screen share", { icon: "🖥️" });
+		};
+
 		socket.on("force-muted", onForceMuted);
 		socket.on("kicked", onKicked);
 		socket.on("meeting-ended", onMeetingEnded);
+		socket.on("force-stop-share", onForceStopShare);
 
 		return () => {
 			socket.off("force-muted", onForceMuted);
 			socket.off("kicked", onKicked);
 			socket.off("meeting-ended", onMeetingEnded);
+			socket.off("force-stop-share", onForceStopShare);
 		};
-	}, [toggleMute, handleRemoteEnd]);
+	}, [toggleMute, handleRemoteEnd, isScreenSharing, toggleScreenShare]);
 };
