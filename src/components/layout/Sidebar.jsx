@@ -65,7 +65,7 @@ export default function Sidebar() {
 	const content = (
 		<>
 			{/* Logo */}
-			<div className="flex items-center justify-between px-6 py-5">
+			<div className="flex shrink-0 items-center justify-between px-6 py-5">
 				<div className="flex items-center gap-2">
 					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-[#3e4bc4] to-[#8B5CF6] text-white font-bold shadow-md">
 						M
@@ -82,7 +82,7 @@ export default function Sidebar() {
 			</div>
 
 			{/* Nav links */}
-			<nav className="flex-1 space-y-1 px-3">
+			<nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-3">
 				{links.map(({ to, label, icon: Icon, end }) => (
 					<NavLink
 						key={to}
@@ -116,7 +116,7 @@ export default function Sidebar() {
 			</nav>
 
 			{/* User card + logout */}
-			<div className="border-t border-gray-200/60 p-3">
+			<div className="shrink-0 border-t border-gray-200/60 p-3">
 				<div className="mb-2 flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2">
 					<div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-[#3e4bc4] to-[#8B5CF6] text-sm font-semibold text-white">
 						{user?.profileImage ? (
