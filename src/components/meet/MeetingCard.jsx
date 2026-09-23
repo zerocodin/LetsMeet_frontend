@@ -9,6 +9,7 @@ import {
 	Trash2,
 	MoreVertical,
 	KeyRound,
+	UserPlus
 } from "lucide-react";
 import toast from "react-hot-toast";
 import StatusBadge from "./StatusBadge";
@@ -78,10 +79,12 @@ export default function MeetingCard({ meeting, onOpenDetail, onCancel }) {
 					<Calendar className="h-3.5 w-3.5 text-gray-400" />
 					<span>{dateLabel}</span>
 				</div>
+
 				<div className="flex items-center gap-2">
 					<Clock className="h-3.5 w-3.5 text-gray-400" />
 					<span>{meeting.duration} min</span>
 				</div>
+
 				<div className="flex items-center gap-2">
 					<Users className="h-3.5 w-3.5 text-gray-400" />
 					<span>
@@ -89,6 +92,14 @@ export default function MeetingCard({ meeting, onOpenDetail, onCancel }) {
 						{meeting.totalParticipants || 0} total
 					</span>
 				</div>
+
+				{meeting.invitedUsers?.length > 0 && (
+					<div className="flex items-center gap-2">
+						<UserPlus className="h-3.5 w-3.5 text-gray-400" />
+						<span>{meeting.invitedUsers.length} invited</span>
+					</div>
+				)}
+
 			</div>
 
 			{/* Actions */}
