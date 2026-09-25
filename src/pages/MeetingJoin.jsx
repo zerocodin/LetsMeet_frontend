@@ -3,15 +3,19 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
+import { useAuth } from "../context/AuthContext";
 import { useMeeting } from "../context/MeetingContext";
 import JoinPasswordPrompt from "../components/meeting/JoinPasswordPrompt";
 import WaitingRoom from "../components/meeting/WaitingRoom";
 import JoinError from "../components/meeting/JoinError";
+import meetingService from "../services/meeting.Service";
 
 /**
  * Route: /meeting/:meetingCode
  */
 export default function MeetingJoin() {
+	const { user } = useAuth();
+
 	const { meetingCode } = useParams();
 	const navigate = useNavigate();
 	const { joinByCode } = useMeeting();
@@ -31,7 +35,8 @@ export default function MeetingJoin() {
 		const msg = err?.message || "";
 		if (/not found/i.test(msg)) return { code: "NOT_FOUND", message: msg };
 		if (/cancelled/i.test(msg)) return { code: "CANCELLED", message: msg };
-		if (/ended|completed/i.test(msg)) return { code: "COMPLETED", message: msg };
+		if (/ended|completed/i.test(msg))
+			return { code: "COMPLETED", message: msg };
 		if (/private|invited/i.test(msg)) return { code: "PRIVATE", message: msg };
 		if (/full/i.test(msg)) return { code: "FULL", message: msg };
 		return { code: "UNKNOWN", message: msg || "Failed to join meeting" };
@@ -76,10 +81,10 @@ export default function MeetingJoin() {
 				setSubmitting(false);
 			}
 		},
-		[meetingCode, joinByCode, navigate, meeting]
+		[meetingCode, joinByCode, navigate, meeting],
 	);
 
-	// Initial attempt on mount 
+	// Initial attempt on mount
 	useEffect(() => {
 		if (attemptedRef.current) return;
 		attemptedRef.current = true;
@@ -100,7 +105,10 @@ export default function MeetingJoin() {
 				setView("waiting");
 			}
 		} catch (err) {
-			setError({ code: "PASSWORD", message: err.message || "Incorrect password" });
+			setError({
+				code: "PASSWORD",
+				message: err.message || "Incorrect password",
+			});
 		} finally {
 			setSubmitting(false);
 		}
@@ -128,6 +136,29 @@ export default function MeetingJoin() {
 		}
 	};
 
+	const handleStartNow = async () => {
+		setSubmitting(true);
+		try {
+			const meetingId = meeting?._id;
+			if (!meetingId) throw new Error("Meeting ID missing");
+
+			await meetingService.startNow(meetingId);
+			toast.success("Meeting started");
+
+			// Immediately attempt to join (bypasses waiting now)
+			const res = await joinByCode({ meetingCode });
+			if (res.status === "JOINED") {
+				navigate(`/room/${res.data.meeting._id}`, { replace: true });
+			} else {
+				setStartsIn(res.data.startsIn ?? 0);
+			}
+		} catch (err) {
+			toast.error(err.message || "Failed to start meeting");
+		} finally {
+			setSubmitting(false);
+		}
+	};
+
 	// Render
 	if (view === "loading") {
 		return (
@@ -141,7 +172,7 @@ export default function MeetingJoin() {
 	if (view === "password") {
 		return (
 			<JoinPasswordPrompt
-				meeting={{meetingCode, title:null}}
+				meeting={{ meetingCode, title: null }}
 				loading={submitting}
 				error={error?.message}
 				onSubmit={handlePasswordSubmit}
@@ -151,6 +182,9 @@ export default function MeetingJoin() {
 	}
 
 	if (view === "waiting") {
+		const isHost =
+			meeting?.host && user?._id && String(meeting.host) === String(user._id);
+
 		return (
 			<WaitingRoom
 				meeting={meeting}
@@ -158,6 +192,8 @@ export default function MeetingJoin() {
 				retrying={submitting}
 				onRetry={handleWaitRetry}
 				onBack={() => navigate("/home")}
+				isHost={isHost}
+				onStartNow={handleStartNow}
 			/>
 		);
 	}

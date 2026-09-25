@@ -20,6 +20,7 @@ import ParticipantsPanel from "../components/room/ParticipantsPanel";
 import LeaveConfirmModal from "../components/room/LeaveConfirmModal";
 import ChatPanel from "../components/room/ChatPanel";
 import meetingService from "../services/meeting.Service";
+import ScreenShareView from "../components/room/ScreenShareView";
 
 import { isSoundEnabled, setSoundEnabled } from "../lib/sound";
 
@@ -60,6 +61,7 @@ export default function MeetingRoom() {
 
 	const localStreamRef = useRef(null);
 	const screenStreamRef = useRef(null);
+	const [localScreenStream, setLocalScreenStream] = useState(null);
 
 	const [localStream, setLocalStream] = useState(null);
 
@@ -121,10 +123,10 @@ export default function MeetingRoom() {
 	);
 
 	useMediaDevices({
-	startCamera: !myParticipant?.isCameraOff,
-	startMic: !myParticipant?.isMuted,
-	onStreamReady: handleStreamReady,
-});
+		startCamera: !myParticipant?.isCameraOff,
+		startMic: !myParticipant?.isMuted,
+		onStreamReady: handleStreamReady,
+	});
 
 	// WebRTC
 	useWebRTC({
@@ -152,6 +154,42 @@ export default function MeetingRoom() {
 		localStream,
 		remoteStreams,
 	});
+
+	// Who's currently sharing?
+	const remoteSharer = participants.find((p) => p.isScreenSharing);
+
+	const activeSharer = isScreenSharing
+		? {
+				isSelf: true,
+				socketId: "self",
+				name: myParticipant?.name || "You",
+				username: myParticipant?.username,
+				profileImage: myParticipant?.profileImage,
+				role: myParticipant?.role,
+			}
+		: remoteSharer
+			? {
+					isSelf: false,
+					socketId: remoteSharer.socketId,
+					name: remoteSharer.name,
+					username: remoteSharer.username,
+					profileImage: remoteSharer.profileImage,
+					role: remoteSharer.role,
+				}
+			: null;
+
+	// The stream to render for the sharer
+	const sharerStream = activeSharer
+		? activeSharer.isSelf
+			? localScreenStream
+			: remoteStreams.get(activeSharer.socketId) || null
+		: null;
+
+	/* Can I start sharing?
+	 Blocked if a remote participant is sharing (self doesn't count). */
+	const someoneElseSharing = !!remoteSharer && !isScreenSharing;
+	const canShare = !someoneElseSharing;
+	const sharerName = remoteSharer?.name;
 
 	// Media sync
 	const { applyMediaState, syncScreenShare } = useMediaSync({
@@ -235,7 +273,12 @@ export default function MeetingRoom() {
 	useRoomShortcuts({
 		onToggleMute: toggleMute,
 		onToggleCamera: toggleCamera,
-		onToggleScreenShare: toggleScreenShare,
+		// onToggleScreenShare: toggleScreenShare,
+		onToggleScreenShare: canShare
+			? toggleScreenShare
+			: () => {
+					toast.error(`${sharerName || "Someone"} is already sharing`);
+				},
 		onToggleChat: () => {
 			setShowChat((v) => !v);
 			if (!showChat) setShowPeople(false);
@@ -259,6 +302,22 @@ export default function MeetingRoom() {
 		};
 	}, []);
 
+	// Sync local screen stream ref to state so we can render it
+	useEffect(() => {
+		if (isScreenSharing) {
+			// Wait for useMediaSync to populate the ref
+			const id = setInterval(() => {
+				if (screenStreamRef.current) {
+					setLocalScreenStream(screenStreamRef.current);
+					clearInterval(id);
+				}
+			}, 100);
+			return () => clearInterval(id);
+		} else {
+			setLocalScreenStream(null);
+		}
+	}, [isScreenSharing]);
+
 	// Render
 	if (bootstrapping || !meeting) {
 		return (
@@ -274,7 +333,7 @@ export default function MeetingRoom() {
 			<RoomHeader
 				meeting={meeting}
 				participantCount={participants.length + 1}
-				startedAt={meeting.startedAt || meeting.scheduledAt}
+				startedAt={meeting.scheduledAt}
 				isAnyoneRecording={isRecording || remoteIsRecording}
 				recordingBy={isRecording ? "you" : remoteIsRecording ? "host" : null}
 			/>
@@ -282,13 +341,25 @@ export default function MeetingRoom() {
 			<main className="flex flex-1 overflow-hidden">
 				{/* Video area */}
 				<div className="flex-1 overflow-hidden">
-					<VideoGrid
-						localStream={localStream}
-						myParticipant={{ ...myParticipant, name: "You" }}
-						remoteStreams={remoteStreams}
-						participants={participants}
-						activeSpeaker={activeSpeaker}
-					/>
+					{activeSharer ? (
+						<ScreenShareView
+							sharer={activeSharer}
+							sharerStream={sharerStream}
+							localStream={localStream}
+							myParticipant={{ ...myParticipant, name: "You" }}
+							remoteStreams={remoteStreams}
+							participants={participants}
+							activeSpeaker={activeSpeaker}
+						/>
+					) : (
+						<VideoGrid
+							localStream={localStream}
+							myParticipant={{ ...myParticipant, name: "You" }}
+							remoteStreams={remoteStreams}
+							participants={participants}
+							activeSpeaker={activeSpeaker}
+						/>
+					)}
 				</div>
 
 				{/* Right panel — desktop rail OR mobile overlay */}
@@ -350,13 +421,15 @@ export default function MeetingRoom() {
 				isScreenSharing={isScreenSharing}
 				showChat={showChat}
 				showPeople={showPeople}
-				isHost={myParticipant?.role === "HOST"} // only true host
+				isHost={myParticipant?.role === "HOST"}
 				isRecording={isRecording}
 				onToggleRecording={handleToggleRecording}
 				onToggleMute={toggleMute}
 				unreadChatCount={unreadChatCount}
 				onToggleCamera={toggleCamera}
 				onToggleScreenShare={toggleScreenShare}
+				canShare={canShare}
+				sharerName={sharerName}
 				onToggleChat={() => {
 					setShowChat((v) => !v);
 					if (!showChat) setShowPeople(false);
