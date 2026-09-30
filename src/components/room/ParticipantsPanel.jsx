@@ -12,6 +12,7 @@ import {
 	UserCheck,
 	ChevronUp,
 	ChevronDown,
+	MonitorX,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -47,7 +48,9 @@ export default function ParticipantsPanel({
 			socketId: "self",
 			isSelf: true,
 			participantId: myParticipant?._id,
-			user: { name: user?.name, username: user?.username, profileImage: user?.profileImage },
+			name: user?.name,
+			username: user?.username,
+			profileImage: user?.profileImage,
 			role: myParticipant?.role,
 			isMuted: myParticipant?.isMuted,
 			isCameraOff: myParticipant?.isCameraOff,
@@ -137,8 +140,7 @@ function ParticipantRow({
 		participant.role !== "HOST" && // can't kick host (only one host)
 		(isHost ? true : participant.role !== "COHOST"); // host can't kick another cohost? Actually host CAN. Adjust below.
 
-	const canPromote =
-		canModerate && participant.role === "PARTICIPANT";
+	const canPromote = canModerate && participant.role === "PARTICIPANT";
 	const canDemote = canModerate && participant.role === "COHOST";
 
 	const initials = (participant.user?.name || "U").charAt(0).toUpperCase();
@@ -149,8 +151,8 @@ function ParticipantRow({
 			<div className="relative shrink-0">
 				{participant.user?.profileImage ? (
 					<img
-						src={participant.user.profileImage}
-						alt={participant.user.name}
+						src={participant.user.profileImage || participant.profileImage}
+						alt={participant.user.name || participant.name}
 						className="h-9 w-9 rounded-full object-cover"
 					/>
 				) : (
@@ -171,7 +173,7 @@ function ParticipantRow({
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-1.5">
 					<p className="truncate text-sm font-medium text-white">
-						{participant.user?.name || "Guest"}
+						{participant.user?.name || participant.name || "Guest"}
 						{participant.isSelf && (
 							<span className="ml-1 text-xs text-gray-400">(you)</span>
 						)}
@@ -185,7 +187,7 @@ function ParticipantRow({
 					)}
 				</div>
 				<p className="truncate text-xs text-gray-400">
-					@{participant.user?.username || "user"}
+					@{participant.user?.username || participant.username || "user"}
 				</p>
 			</div>
 
@@ -260,7 +262,7 @@ function ParticipantRow({
 								/>
 							)}
 
-							{/* Remove */}
+							{/* Remove from meeting*/}
 							{canKick && (
 								<>
 									<div className="my-1 h-px bg-white/10" />
@@ -274,6 +276,21 @@ function ParticipantRow({
 										}}
 									/>
 								</>
+							)}
+
+							{/* stop screen share */}
+							{canKick && participant.isScreenSharing && (
+								<MenuItem
+									icon={MonitorX}
+									label="Stop screen share"
+									onClick={() => {
+										onStopShare?.(
+											participant.participantId,
+											participant.socketId,
+										);
+										setMenuOpen(false);
+									}}
+								/>
 							)}
 						</div>
 					)}
