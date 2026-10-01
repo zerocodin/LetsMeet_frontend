@@ -7,7 +7,9 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useEffect } from "react";
 
+import chatService from "../services/chat.Service";
 import meetingService from "../services/meeting.Service";
 import { getSocket, connectSocket, disconnectSocket } from "../lib/socket";
 
@@ -26,6 +28,7 @@ export function MeetingProvider({ children }) {
 	const [isMuted, setIsMuted] = useState(false);
 	const [isCameraOff, setIsCameraOff] = useState(false);
 	const [isScreenSharing, setIsScreenSharing] = useState(false);
+	const [remoteIsRecording, setRemoteIsRecording] = useState(false);
 
 	// WebRTC refs (populated by useWebRTC later)
 	const peerConnections = useRef(new Map()); // socketId → RTCPeerConnection
@@ -34,8 +37,52 @@ export function MeetingProvider({ children }) {
 
 	//Socket listeners bound once per join
 	const socketListenersBound = useRef(false);
+	const isChatPanelOpenRef = useRef(false);
+
+	// Chat state
+	const [messages, setMessages] = useState([]);
+	const [chatLoading, setChatLoading] = useState(true);
+	const [chatHasMore, setChatHasMore] = useState(false);
+	const [chatLoadingMore, setChatLoadingMore] = useState(false);
+	const [unreadChatCount, setUnreadChatCount] = useState(0);
+	const [isChatPanelOpen, setIsChatPanelOpen] = useState(false);
+
+	const chatCursorRef = useRef(null);
+	const chatSeenIdsRef = useRef(new Set());
 
 	// HELPERS
+
+	const unbindSocketListeners = useCallback(() => {
+		const socket = getSocket();
+		socket.off("participant-joined");
+		socket.off("participant-left");
+		socket.off("participant-state-changed");
+		socket.off("meeting-ended");
+		socket.off("kicked");
+		socketListenersBound.current = false;
+	}, []);
+
+	const handleRemoteEnd = useCallback(() => {
+		setStatus("ENDED");
+		unbindSocketListeners();
+		disconnectSocket();
+		peerConnections.current.forEach((pc) => pc.close());
+		peerConnections.current.clear();
+
+		if (localStreamRef.current) {
+			localStreamRef.current.getTracks().forEach((t) => t.stop());
+			localStreamRef.current = null;
+		}
+		if (screenStreamRef.current) {
+			screenStreamRef.current.getTracks().forEach((t) => t.stop());
+			screenStreamRef.current = null;
+		}
+
+		setMeeting(null);
+		setMyParticipant(null);
+		setParticipants([]);
+		navigate("/home");
+	}, [navigate, unbindSocketListeners]);
 
 	const bindSocketListeners = useCallback(() => {
 		if (socketListenersBound.current) return;
@@ -60,8 +107,8 @@ export function MeetingProvider({ children }) {
 		socket.on("participant-state-changed", (update) => {
 			setParticipants((prev) =>
 				prev.map((p) =>
-					p.socketId === update.socketId ? { ...p, ...update } : p
-				)
+					p.socketId === update.socketId ? { ...p, ...update } : p,
+				),
 			);
 		});
 
@@ -78,42 +125,6 @@ export function MeetingProvider({ children }) {
 		});
 	}, []);
 
-	const unbindSocketListeners = useCallback(() => {
-		const socket = getSocket();
-		socket.off("participant-joined");
-		socket.off("participant-left");
-		socket.off("participant-state-changed");
-		socket.off("meeting-ended");
-		socket.off("kicked");
-		socketListenersBound.current = false;
-	}, []);
-
-	/**
-	 * Cleanup when meeting ends for any reason (host ended / we were kicked)
-	 * We intentionally DON'T ask the server to leave — that already happened.
-	 */
-	const handleRemoteEnd = useCallback(() => {
-		setStatus("ENDED");
-		unbindSocketListeners();
-		disconnectSocket();
-		peerConnections.current.forEach((pc) => pc.close());
-		peerConnections.current.clear();
-
-		if (localStreamRef.current) {
-			localStreamRef.current.getTracks().forEach((t) => t.stop());
-			localStreamRef.current = null;
-		}
-		if (screenStreamRef.current) {
-			screenStreamRef.current.getTracks().forEach((t) => t.stop());
-			screenStreamRef.current = null;
-		}
-
-		setMeeting(null);
-		setMyParticipant(null);
-		setParticipants([]);
-		navigate("/home");
-	}, [navigate, unbindSocketListeners]);
-
 	// CREATE MEETING (no room join yet)
 	const createMeeting = useCallback(async (payload) => {
 		try {
@@ -124,6 +135,184 @@ export function MeetingProvider({ children }) {
 			throw err;
 		}
 	}, []);
+
+	// Action — called by host after starting local recording
+	const broadcastRecordingStart = useCallback(() => {
+		const socket = getSocket();
+		if (socket?.connected && meeting?._id) {
+			socket.emit("recording-started");
+		}
+	}, [meeting]);
+
+	const broadcastRecordingStop = useCallback(() => {
+		const socket = getSocket();
+		if (socket?.connected && meeting?._id) {
+			socket.emit("recording-stopped");
+		}
+	}, [meeting]);
+
+	//  Chat: load history
+	const loadChatHistory = useCallback(async () => {
+		if (!meeting?._id) return;
+
+		setChatLoading(true);
+
+		try {
+			const res = await chatService.getHistory(meeting._id, { limit: 50 });
+
+			chatSeenIdsRef.current = new Set();
+			res.data.forEach((m) => chatSeenIdsRef.current.add(m._id));
+
+			setMessages(res.data);
+			setChatHasMore(!!res.hasMore);
+			chatCursorRef.current = res.nextCursor;
+		} catch (err) {
+			toast.error(err.message || "Failed to load chat");
+		} finally {
+			setChatLoading(false);
+		}
+	}, [meeting?._id]);
+
+	//  Chat: add message
+	const addChatMessage = useCallback((msg) => {
+		if (!msg?._id) return;
+		if (chatSeenIdsRef.current.has(msg._id)) return;
+
+		chatSeenIdsRef.current.add(msg._id);
+		setMessages((prev) =>
+			[...prev, msg].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt)),
+		);
+
+		// Increment unread if panel is closed
+		if (!isChatPanelOpenRef.current) setUnreadChatCount((c) => c + 1);
+	}, []);
+
+	//  Chat: load older
+	const loadOlderMessages = useCallback(async () => {
+		if (!chatHasMore || chatLoadingMore || !chatCursorRef.current) return;
+		if (!meeting?._id) return;
+
+		setChatLoadingMore(true);
+		try {
+			const res = await chatService.getHistory(meeting._id, {
+				before: chatCursorRef.current,
+				limit: 50,
+			});
+
+			const fresh = res.data.filter((m) => !chatSeenIdsRef.current.has(m._id));
+			fresh.forEach((m) => chatSeenIdsRef.current.add(m._id));
+
+			setMessages((prev) => [...fresh, ...prev]);
+			setChatHasMore(!!res.hasMore);
+			chatCursorRef.current = res.nextCursor;
+		} catch (err) {
+			toast.error(err.message || "Failed to load more");
+		} finally {
+			setChatLoadingMore(false);
+		}
+	}, [meeting?._id, chatHasMore, chatLoadingMore]);
+
+	//  Chat: send
+	const sendChatMessage = useCallback((text) => {
+		const trimmed = text?.trim();
+		if (!trimmed) return;
+
+		const socket = getSocket();
+		if (!socket?.connected) {
+			toast.error("Not connected");
+			return;
+		}
+
+		socket.emit("send-chat", { message: trimmed }, (ack) => {
+			if (!ack?.success) {
+				toast.error(ack?.message || "Failed to send");
+			}
+		});
+	}, []);
+
+	//  Chat: delete
+	const deleteChatMessageById = useCallback(
+		async (messageId) => {
+			if (!meeting?._id) return;
+			try {
+				await chatService.deleteMessage(meeting._id, messageId);
+				setMessages((prev) => prev.filter((m) => m._id !== messageId));
+
+				const socket = getSocket();
+				if (socket?.connected) {
+					socket.emit("chat-message-deleted", {
+						meetingId: meeting._id,
+						messageId,
+					});
+				}
+			} catch (err) {
+				toast.error(err.message || "Failed to delete");
+			}
+		},
+		[meeting],
+	);
+
+	//  Chat: panel open/close
+	const openChatPanel = useCallback(() => {
+		setIsChatPanelOpen(true);
+		setUnreadChatCount(0);
+	}, []);
+
+	const closeChatPanel = useCallback(() => setIsChatPanelOpen(false), []);
+
+	//  Chat: reset on leave
+	const resetChat = useCallback(() => {
+		setMessages([]);
+		setUnreadChatCount(0);
+		setIsChatPanelOpen(false);
+		setChatLoading(true);
+		setChatHasMore(false);
+		chatSeenIdsRef.current = new Set();
+		chatCursorRef.current = null;
+	}, []);
+
+	// Socket listener — when someone else starts/stops recording
+	useEffect(() => {
+		const socket = getSocket();
+		if (!socket) return;
+
+		const onStart = () => setRemoteIsRecording(true);
+		const onStop = () => setRemoteIsRecording(false);
+
+		socket.on("recording-started", onStart);
+		socket.on("recording-stopped", onStop);
+
+		return () => {
+			socket.off("recording-started", onStart);
+			socket.off("recording-stopped", onStop);
+		};
+	}, [meeting]);
+
+	useEffect(() => {
+		if (!meeting?._id) return;
+
+		loadChatHistory();
+
+		const socket = getSocket();
+		if (!socket) return;
+
+		const onChatMessage = (msg) => addChatMessage(msg);
+		const onChatDeleted = ({ messageId }) => {
+			setMessages((prev) => prev.filter((m) => m._id !== messageId));
+		};
+
+		socket.on("chat-message", onChatMessage);
+		socket.on("chat-message-deleted", onChatDeleted);
+
+		return () => {
+			socket.off("chat-message", onChatMessage);
+			socket.off("chat-message-deleted", onChatDeleted);
+		};
+	}, [meeting?._id]);
+
+	useEffect(() => {
+		isChatPanelOpenRef.current = isChatPanelOpen;
+	}, [isChatPanelOpen]);
 
 	// JOIN MEETING
 	const joinByCode = useCallback(
@@ -155,14 +344,18 @@ export function MeetingProvider({ children }) {
 
 					// Join the socket room
 					const socket = getSocket();
-					socket.emit("join-meeting", { meetingId: res.data.meeting._id }, (ack) => {
-						if (!ack?.success) {
-							toast.error(ack?.message || "Failed to join room");
-							return;
-						}
-						// ack.participants = existing participants (excluding me)
-						setParticipants(ack.participants || []);
-					});
+					socket.emit(
+						"join-meeting",
+						{ meetingId: res.data.meeting._id },
+						(ack) => {
+							if (!ack?.success) {
+								toast.error(ack?.message || "Failed to join room");
+								return;
+							}
+							// ack.participants = existing participants (excluding me)
+							setParticipants(ack.participants || []);
+						},
+					);
 
 					setStatus("JOINED");
 					return res;
@@ -174,7 +367,7 @@ export function MeetingProvider({ children }) {
 				throw err;
 			}
 		},
-		[bindSocketListeners]
+		[bindSocketListeners],
 	);
 
 	const joinById = useCallback(
@@ -202,13 +395,17 @@ export function MeetingProvider({ children }) {
 					bindSocketListeners();
 
 					const socket = getSocket();
-					socket.emit("join-meeting", { meetingId: res.data.meeting._id }, (ack) => {
-						if (!ack?.success) {
-							toast.error(ack?.message || "Failed to join room");
-							return;
-						}
-						setParticipants(ack.participants || []);
-					});
+					socket.emit(
+						"join-meeting",
+						{ meetingId: res.data.meeting._id },
+						(ack) => {
+							if (!ack?.success) {
+								toast.error(ack?.message || "Failed to join room");
+								return;
+							}
+							setParticipants(ack.participants || []);
+						},
+					);
 
 					setStatus("JOINED");
 					return res;
@@ -218,7 +415,7 @@ export function MeetingProvider({ children }) {
 				throw err;
 			}
 		},
-		[bindSocketListeners]
+		[bindSocketListeners],
 	);
 
 	// LEAVE / END
@@ -331,14 +528,14 @@ export function MeetingProvider({ children }) {
 				// Optimistic update
 				setParticipants((prev) =>
 					prev.map((p) =>
-						p.participantId === participantId ? { ...p, isMuted: true } : p
-					)
+						p.participantId === participantId ? { ...p, isMuted: true } : p,
+					),
 				);
 			} catch (err) {
 				toast.error(err.message || "Failed to mute participant");
 			}
 		},
-		[meeting]
+		[meeting],
 	);
 
 	const hostUnmute = useCallback(
@@ -348,14 +545,14 @@ export function MeetingProvider({ children }) {
 				await meetingService.unmuteParticipant(meeting._id, participantId);
 				setParticipants((prev) =>
 					prev.map((p) =>
-						p.participantId === participantId ? { ...p, isMuted: false } : p
-					)
+						p.participantId === participantId ? { ...p, isMuted: false } : p,
+					),
 				);
 			} catch (err) {
 				toast.error(err.message || "Failed to unmute participant");
 			}
 		},
-		[meeting]
+		[meeting],
 	);
 
 	const hostRemove = useCallback(
@@ -370,13 +567,13 @@ export function MeetingProvider({ children }) {
 				}
 
 				setParticipants((prev) =>
-					prev.filter((p) => p.participantId !== participantId)
+					prev.filter((p) => p.participantId !== participantId),
 				);
 			} catch (err) {
 				toast.error(err.message || "Failed to remove participant");
 			}
 		},
-		[meeting]
+		[meeting],
 	);
 
 	const hostPromote = useCallback(
@@ -386,14 +583,14 @@ export function MeetingProvider({ children }) {
 				await meetingService.promoteToCohost(meeting._id, participantId);
 				setParticipants((prev) =>
 					prev.map((p) =>
-						p.participantId === participantId ? { ...p, role: "COHOST" } : p
-					)
+						p.participantId === participantId ? { ...p, role: "COHOST" } : p,
+					),
 				);
 			} catch (err) {
 				toast.error(err.message || "Failed to promote participant");
 			}
 		},
-		[meeting]
+		[meeting],
 	);
 
 	const hostDemote = useCallback(
@@ -405,14 +602,40 @@ export function MeetingProvider({ children }) {
 					prev.map((p) =>
 						p.participantId === participantId
 							? { ...p, role: "PARTICIPANT" }
-							: p
-					)
+							: p,
+					),
 				);
 			} catch (err) {
 				toast.error(err.message || "Failed to demote participant");
 			}
 		},
-		[meeting]
+		[meeting],
+	);
+
+	const hostStopShare = useCallback(
+		async (participantId, targetSocketId) => {
+			if (!meeting?._id) return;
+			try {
+				await meetingService.stopScreenShare(meeting._id, participantId);
+
+				const socket = getSocket();
+				if (socket?.connected && targetSocketId) {
+					socket.emit("host-stop-share", { targetSocketId });
+				}
+
+				// Optimistic update
+				setParticipants((prev) =>
+					prev.map((p) =>
+						p.participantId === participantId
+							? { ...p, isScreenSharing: false }
+							: p,
+					),
+				);
+			} catch (err) {
+				toast.error(err.message || "Failed to stop screen share");
+			}
+		},
+		[meeting],
 	);
 
 	const hostEndForAll = useCallback(async () => {
@@ -458,6 +681,7 @@ export function MeetingProvider({ children }) {
 		isMuted,
 		isCameraOff,
 		isScreenSharing,
+		remoteIsRecording,
 
 		// refs (for WebRTC hook)
 		peerConnections,
@@ -472,6 +696,23 @@ export function MeetingProvider({ children }) {
 		toggleMute,
 		toggleCamera,
 		toggleScreenShare,
+		broadcastRecordingStart,
+		broadcastRecordingStop,
+
+		// chat
+		messages,
+		chatLoading,
+		chatHasMore,
+		chatLoadingMore,
+		unreadChatCount,
+		isChatPanelOpen,
+		loadChatHistory,
+		loadOlderMessages,
+		sendChatMessage,
+		deleteChatMessageById,
+		openChatPanel,
+		closeChatPanel,
+		resetChat,
 
 		// host
 		hostMute,
@@ -480,6 +721,7 @@ export function MeetingProvider({ children }) {
 		hostPromote,
 		hostDemote,
 		hostEndForAll,
+		hostStopShare,
 
 		// helpers
 		handleRemoteEnd,
