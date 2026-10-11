@@ -52,6 +52,7 @@ export default function MeetingRoom() {
 		hostRemove,
 		hostPromote,
 		hostDemote,
+		hostStopShare,
 		hostEndForAll,
 		remoteIsRecording,
 		broadcastRecordingStart,
@@ -406,6 +407,7 @@ export default function MeetingRoom() {
 									onRemove={hostRemove}
 									onPromote={hostPromote}
 									onDemote={hostDemote}
+									onStopShare={hostStopShare}
 								/>
 							) : (
 								<ChatPanel meetingId={meetingId} />

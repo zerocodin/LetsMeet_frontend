@@ -5,6 +5,7 @@ import {
 	Video,
 	VideoOff,
 	MonitorUp,
+	MonitorX,
 	Crown,
 	Shield,
 	MoreVertical,
@@ -38,6 +39,7 @@ export default function ParticipantsPanel({
 	onRemove,
 	onPromote,
 	onDemote,
+	onStopShare,
 }) {
 	const { user } = useAuth();
 
@@ -101,6 +103,7 @@ export default function ParticipantsPanel({
 						onRemove={onRemove}
 						onPromote={onPromote}
 						onDemote={onDemote}
+						onStopShare={onStopShare}
 					/>
 				))}
 			</div>
@@ -117,6 +120,7 @@ function ParticipantRow({
 	onRemove,
 	onPromote,
 	onDemote,
+	onStopShare,
 }) {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const menuRef = useRef(null);
@@ -257,6 +261,21 @@ function ParticipantRow({
 									label="Remove co-host"
 									onClick={() => {
 										onDemote(participant.participantId);
+										setMenuOpen(false);
+									}}
+								/>
+							)}
+
+							{/* Stop screen share — host only, only if participant is sharing */}
+							{canModerate && participant.isScreenSharing && (
+								<MenuItem
+									icon={MonitorX}
+									label="Stop screen share"
+									onClick={() => {
+										onStopShare?.(
+											participant.participantId,
+											participant.socketId,
+										);
 										setMenuOpen(false);
 									}}
 								/>

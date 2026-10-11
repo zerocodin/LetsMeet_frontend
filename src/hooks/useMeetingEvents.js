@@ -24,6 +24,9 @@ export const useMeetingEvents = () => {
 	const isMutedRef = { current: isMuted };
 	isMutedRef.current = isMuted;
 
+	const isScreenSharingRef = { current: isScreenSharing };
+	isScreenSharingRef.current = isScreenSharing;
+
 	useEffect(() => {
 		const socket = connectSocket();
 		if (!socket) return;
@@ -49,8 +52,15 @@ export const useMeetingEvents = () => {
 		};
 
 		const onForceStopShare = () => {
-			if (isScreenSharing) toggleScreenShare();
-			toast("Host stopped your screen share", { icon: "🖥️" });
+			// if (isScreenSharing) toggleScreenShare();
+			// toast("Host stopped your screen share", { icon: "🖥️" });
+			if (isScreenSharingRef.current) {
+				toggleScreenShare();
+			}
+			toast("Host stopped your screen share", {
+				icon: "🖥️",
+				duration: 2500,
+			});
 		};
 
 		socket.on("force-muted", onForceMuted);
