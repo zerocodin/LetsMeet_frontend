@@ -11,6 +11,8 @@ import {
 	UserPlus,
 } from "lucide-react";
 import toast from "react-hot-toast";
+
+import ParticipantRow from "./ParticipantRow";
 import meetingService from "../../services/meeting.Service";
 import StatusBadge from "./StatusBadge";
 import InviteFriendsModal from "../meeting/InviteFriendsModal";
@@ -27,6 +29,7 @@ export default function MeetingDetailDrawer({ meeting, open, onClose }) {
 	const [history, setHistory] = useState([]);
 	const [historyLoading, setHistoryLoading] = useState(false);
 	const [showInviteModal, setShowInviteModal] = useState(false);
+	const [refreshTick, setRefreshTick] = useState(0);
 
 	// Fetch meeting details when the drawer opens or invite modal closes
 	useEffect(() => {
@@ -52,6 +55,13 @@ export default function MeetingDetailDrawer({ meeting, open, onClose }) {
 			.finally(() => setHistoryLoading(false));
 	}, [open, meeting?._id, participantTab]);
 
+	// Interval forces re-render every 30s so live durations update
+	useEffect(() => {
+		if (!open) return;
+		const id = setInterval(() => setRefreshTick((t) => t + 1), 30_000);
+		return () => clearInterval(id);
+	}, [open]);
+
 	if (!open) return null;
 
 	const m = details?.meeting || meeting;
@@ -64,14 +74,6 @@ export default function MeetingDetailDrawer({ meeting, open, onClose }) {
 			: (details?.meeting?.host ?? meeting?.host);
 
 	const isHost = String(hostId) === String(user?._id);
-
-	// Optional: log for debugging — remove after confirming
-	console.log("[Drawer] host check:", {
-		hostId: String(hostId),
-		userId: String(user?._id),
-		isHost,
-		detailsLoaded: !!details,
-	});
 
 	return (
 		<>
@@ -242,7 +244,7 @@ export default function MeetingDetailDrawer({ meeting, open, onClose }) {
 							)}
 
 							{/* Active participants */}
-							<section>
+							{/*<section>
 								<h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
 									Active participants ({active.length})
 								</h3>
@@ -278,6 +280,85 @@ export default function MeetingDetailDrawer({ meeting, open, onClose }) {
 											</li>
 										))}
 									</ul>
+								)}
+							</section>*/}
+
+							{/* Participants — tabs: Active / History */}
+							<section>
+								<div className="mb-3 flex items-center justify-between">
+									<h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+										Participants
+									</h3>
+
+									{/* Tab switch */}
+									<div className="flex items-center gap-1 rounded-lg bg-gray-100 p-0.5">
+										<button
+											onClick={() => setParticipantTab("active")}
+											className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+												participantTab === "active"
+													? "bg-white text-[#3e4bc4] shadow-sm"
+													: "text-gray-500 hover:text-gray-700"
+											}`}
+										>
+											Active ({active.length})
+										</button>
+										<button
+											onClick={() => setParticipantTab("history")}
+											className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+												participantTab === "history"
+													? "bg-white text-[#3e4bc4] shadow-sm"
+													: "text-gray-500 hover:text-gray-700"
+											}`}
+										>
+											History ({history.length || 0})
+										</button>
+									</div>
+								</div>
+
+								{/* ─── Active tab ─── */}
+								{participantTab === "active" && (
+									<>
+										{active.length === 0 ? (
+											<div className="rounded-xl border border-dashed border-gray-200 p-6 text-center text-xs text-gray-500">
+												No one is currently in this meeting
+											</div>
+										) : (
+											<ul className="space-y-2">
+												{active.map((p) => (
+													<ParticipantRow
+														key={p._id}
+														participant={p}
+														variant="active"
+													/>
+												))}
+											</ul>
+										)}
+									</>
+								)}
+
+								{/* ─── History tab ─── */}
+								{participantTab === "history" && (
+									<>
+										{historyLoading ? (
+											<div className="flex justify-center py-6">
+												<Loader2 className="h-4 w-4 animate-spin text-[#3e4bc4]" />
+											</div>
+										) : history.length === 0 ? (
+											<div className="rounded-xl border border-dashed border-gray-200 p-6 text-center text-xs text-gray-500">
+												No one has joined this meeting yet
+											</div>
+										) : (
+											<ul className="space-y-2">
+												{history.map((p) => (
+													<ParticipantRow
+														key={p._id}
+														participant={p}
+														variant="history"
+													/>
+												))}
+											</ul>
+										)}
+									</>
 								)}
 							</section>
 						</>
