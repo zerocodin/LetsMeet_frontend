@@ -59,7 +59,7 @@ export default function VideoTile({
 					participant?.isCameraOff && !isScreenShare
 						? "opacity-0"
 						: "opacity-100"
-				}`}
+				} ${!isScreenShare ? "scale-x-[-1]" : ""}`}
 			/>
 
 			{/* Avatar fallback (camera off) */}
