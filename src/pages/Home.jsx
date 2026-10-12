@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from "react";
-import toast from "react-hot-toast";
 import {
 	Users,
 	Bell,
@@ -9,45 +8,35 @@ import {
 	Video,
 	Plus,
 } from "lucide-react";
-
-import Sidebar from "../components/layout/Sidebar";
+import toast from "react-hot-toast";
 import AppLayout from "../components/layout/AppLayout";
 import CreateMeetingModal from "../components/meeting/CreateMeetingModal";
 import userService from "../services/user.Service";
-
-const feed = [
-	{
-		id: 1,
-		user: "Sara Ahmed",
-		handle: "@sara",
-		time: "2h ago",
-		text: "Just launched my first React side project 🚀",
-		likes: 24,
-		comments: 5,
-	},
-	{
-		id: 2,
-		user: "Rafi Khan",
-		handle: "@rafi",
-		time: "5h ago",
-		text: "Anyone up for a study session this weekend?",
-		likes: 12,
-		comments: 8,
-	},
-	{
-		id: 3,
-		user: "Nadia Islam",
-		handle: "@nadia",
-		time: "1d ago",
-		text: "Coffee and code — my favourite combo ☕💻",
-		likes: 40,
-		comments: 3,
-	},
-];
+import activityService from "../services/activity.Service";
+import ActivityFeed from "../components/home/ActivityFeed";
 
 export default function Home() {
 	const [showCreate, setShowCreate] = useState(false);
 	const [initialMode, setInitialMode] = useState(undefined);
+	const [activity, setActivity] = useState([]);
+	const [activityLoading, setActivityLoading] = useState(true);
+
+	const fetchActivity = useCallback(async () => {
+		try {
+			const res = await activityService.getFeed(15);
+			setActivity(res.data || []);
+		} catch (err) {
+			console.error("Failed to load activity:", err);
+		} finally {
+			setActivityLoading(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		fetchActivity();
+		const id = setInterval(fetchActivity, 60_000);
+		return () => clearInterval(id);
+	}, [fetchActivity]);
 
 	const [statsData, setStatsData] = useState({
 		friends: 0,
@@ -109,6 +98,10 @@ export default function Home() {
 		setShowCreate(true);
 	};
 
+	const handleClick = ()=>{
+		toast("coming soon...")
+	}
+
 	return (
 		<AppLayout>
 			{/* Greeting */}
@@ -126,7 +119,7 @@ export default function Home() {
 						className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-[#3e4bc4] to-[#8B5CF6] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/30 transition-all hover:scale-[1.03]"
 					>
 						<Video className="h-4 w-4" />
-						New Meeting
+						Instant Meeting
 					</button>
 
 					<button
@@ -177,44 +170,11 @@ export default function Home() {
 						<h2 className="text-lg font-semibold text-gray-800">Activity</h2>
 						<span className="flex items-center gap-1 text-xs text-gray-500">
 							<TrendingUp className="h-3.5 w-3.5" />
-							Trending now
+							Recent
 						</span>
 					</div>
 
-					<div className="space-y-4">
-						{feed.map((post) => (
-							<article
-								key={post.id}
-								className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-md backdrop-blur-lg"
-							>
-								<div className="mb-3 flex items-center gap-3">
-									<div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#3e4bc4] to-[#8B5CF6] text-sm font-semibold text-white">
-										{post.user.charAt(0)}
-									</div>
-									<div>
-										<p className="text-sm font-semibold text-gray-800">
-											{post.user}{" "}
-											<span className="font-normal text-gray-400">
-												{post.handle}
-											</span>
-										</p>
-										<p className="text-xs text-gray-400">{post.time}</p>
-									</div>
-								</div>
-								<p className="text-sm leading-relaxed text-gray-700">
-									{post.text}
-								</p>
-								<div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
-									<button className="hover:text-[#3e4bc4]">
-										❤️ {post.likes}
-									</button>
-									<button className="hover:text-[#3e4bc4]">
-										💬 {post.comments}
-									</button>
-								</div>
-							</article>
-						))}
-					</div>
+					<ActivityFeed events={activity} loading={activityLoading} />
 				</section>
 
 				{/* Right column */}
@@ -229,38 +189,9 @@ export default function Home() {
 							Complete your profile to unlock more connections and personal
 							recommendations.
 						</p>
-						<button className="mt-4 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold backdrop-blur hover:bg-white/30">
+						<button className="mt-4 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold backdrop-blur hover:bg-white/30" onClick={handleClick}>
 							Complete profile
 						</button>
-					</div>
-
-					{/* Suggested people */}
-					<div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-md backdrop-blur-lg">
-						<h3 className="mb-4 text-sm font-semibold text-gray-800">
-							Suggested for you
-						</h3>
-						<ul className="space-y-3">
-							{[
-								{ name: "Imran Hossain", handle: "@imran" },
-								{ name: "Tasnim Akter", handle: "@tasnim" },
-								{ name: "Fahim Rahman", handle: "@fahim" },
-							].map((p) => (
-								<li key={p.handle} className="flex items-center gap-3">
-									<div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-[#3e4bc4] to-[#8B5CF6] text-xs font-semibold text-white">
-										{p.name.charAt(0)}
-									</div>
-									<div className="flex-1">
-										<p className="text-sm font-medium text-gray-800">
-											{p.name}
-										</p>
-										<p className="text-xs text-gray-400">{p.handle}</p>
-									</div>
-									<button className="rounded-lg bg-[#3e4bc4] px-3 py-1 text-xs font-semibold text-white hover:bg-[#3540a8]">
-										Follow
-									</button>
-								</li>
-							))}
-						</ul>
 					</div>
 				</aside>
 			</div>
