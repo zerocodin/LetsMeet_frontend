@@ -9,10 +9,12 @@ import {
 	Trash2,
 	MoreVertical,
 	KeyRound,
-	UserPlus
+	UserPlus,
 } from "lucide-react";
 import toast from "react-hot-toast";
+
 import StatusBadge from "./StatusBadge";
+import { useAuth } from "../../context/AuthContext";
 
 /**
  * @param {Object} props
@@ -22,6 +24,7 @@ import StatusBadge from "./StatusBadge";
  */
 export default function MeetingCard({ meeting, onOpenDetail, onCancel }) {
 	const navigate = useNavigate();
+	const { user } = useAuth();
 
 	const copy = async (text, label = "Copied") => {
 		try {
@@ -32,10 +35,15 @@ export default function MeetingCard({ meeting, onOpenDetail, onCancel }) {
 		}
 	};
 
+	// compute amHost
+	const hostId =
+		typeof meeting.host === "object" ? meeting.host?._id : meeting.host;
+	const amHost = String(hostId) === String(user?._id);
+
 	const canJoin =
 		meeting.status === "SCHEDULED" || meeting.status === "ONGOING";
 	const canCancel =
-		meeting.status === "SCHEDULED" || meeting.status === "ONGOING";
+		amHost && (meeting.status === "SCHEDULED" || meeting.status === "ONGOING");
 
 	const handleJoin = () => {
 		if (meeting.status === "ONGOING") {
@@ -49,6 +57,13 @@ export default function MeetingCard({ meeting, onOpenDetail, onCancel }) {
 		dateStyle: "medium",
 		timeStyle: "short",
 	});
+
+	const minutesUntilStart =
+		(new Date(meeting.scheduledAt).getTime() - Date.now()) / 60000;
+	const startsSoon =
+		meeting.status === "SCHEDULED" &&
+		minutesUntilStart >= 0 &&
+		minutesUntilStart <= 5;
 
 	return (
 		<div className="group rounded-2xl border border-white/60 bg-white/70 p-5 shadow-md backdrop-blur-lg transition-all hover:-translate-y-0.5 hover:shadow-lg">
@@ -68,6 +83,23 @@ export default function MeetingCard({ meeting, onOpenDetail, onCancel }) {
 						>
 							<KeyRound className="h-3 w-3" />
 						</button>
+
+						{/* ─── Role badge ─── */}
+						<span
+							className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
+								amHost
+									? "bg-amber-100 text-amber-700"
+									: "bg-indigo-100 text-indigo-700"
+							}`}
+						>
+							{amHost ? "Hosted" : "Joined"}
+						</span>
+
+						{startsSoon && (
+							<span className="animate-pulse rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-700">
+								Starting soon
+							</span>
+						)}
 					</div>
 				</div>
 				<StatusBadge status={meeting.status} />
@@ -99,7 +131,6 @@ export default function MeetingCard({ meeting, onOpenDetail, onCancel }) {
 						<span>{meeting.invitedUsers.length} invited</span>
 					</div>
 				)}
-
 			</div>
 
 			{/* Actions */}
@@ -110,7 +141,11 @@ export default function MeetingCard({ meeting, onOpenDetail, onCancel }) {
 						className="inline-flex items-center gap-1.5 rounded-lg bg-linear-to-r from-[#3e4bc4] to-[#8B5CF6] px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:scale-[1.02]"
 					>
 						<Video className="h-3.5 w-3.5" />
-						{meeting.status === "ONGOING" ? "Join now" : "Start"}
+						{meeting.status === "ONGOING"
+							? "Join now"
+							: amHost
+								? "Start"
+								: "Join"}
 					</button>
 				)}
 

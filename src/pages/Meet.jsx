@@ -29,23 +29,24 @@ export default function Meet() {
 	const [detailMeeting, setDetailMeeting] = useState(null);
 	const [detailOpen, setDetailOpen] = useState(false);
 	const [cancellingId, setCancellingId] = useState(null);
+	const [counts, setCounts] = useState({ host: 0, participant: 0, all: 0 });
 
 	// Fetch
 	const fetchMeetings = useCallback(async () => {
 		setLoading(true);
 		try {
-			// const res = await meetingService.getMyMeetings({ limit: 50 });
 			const res = await meetingService.getMyMeetings({
 				limit: 50,
 				role: roleTab,
 			});
 			setMeetings(res.data || []);
+			if (res.counts) setCounts(res.counts);
 		} catch (err) {
 			toast.error(err.message || "Failed to load meetings");
 		} finally {
 			setLoading(false);
 		}
-	}, []);
+	}, [roleTab]); // ← roleTab now in deps
 
 	useEffect(() => {
 		fetchMeetings();
@@ -93,8 +94,8 @@ export default function Meet() {
 		}
 	};
 
-	// Counts for tabs
-	const counts = useMemo(() => {
+	// Counts for status tabs (local, based on loaded meetings)
+	const statusCounts = useMemo(() => {
 		const c = { ALL: meetings.length };
 		TABS.slice(1).forEach((t) => {
 			c[t.key] = meetings.filter((m) => m.status === t.key).length;
@@ -122,6 +123,36 @@ export default function Meet() {
 				</button>
 			</div>
 
+			{/* Role tabs — Hosted / Joined / All */}
+			<div className="mb-4 flex items-center gap-1.5">
+				{[
+					{ key: "host", label: "Hosted", count: counts.host },
+					{ key: "participant", label: "Joined", count: counts.participant },
+					{ key: "all", label: "All", count: counts.all },
+				].map((r) => (
+					<button
+						key={r.key}
+						onClick={() => setRoleTab(r.key)}
+						className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors ${
+							roleTab === r.key
+								? "bg-[#3e4bc4] text-white shadow-sm"
+								: "bg-white/60 text-gray-600 hover:bg-white"
+						}`}
+					>
+						{r.label}
+						<span
+							className={`rounded-md px-1.5 py-0.5 text-[10px] ${
+								roleTab === r.key
+									? "bg-white/20 text-white"
+									: "bg-gray-100 text-gray-500"
+							}`}
+						>
+							{r.count}
+						</span>
+					</button>
+				))}
+			</div>
+
 			{/* Tabs + Search */}
 			<div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div className="flex flex-wrap gap-1.5">
@@ -143,7 +174,7 @@ export default function Meet() {
 										: "bg-gray-100 text-gray-500"
 								}`}
 							>
-								{counts[t.key] || 0}
+								{statusCounts[t.key] || 0}
 							</span>
 						</button>
 					))}

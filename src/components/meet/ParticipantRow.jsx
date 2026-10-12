@@ -35,10 +35,18 @@ export default function ParticipantRow({ participant, variant = "active" }) {
 
 			{/* Info */}
 			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-1.5">
+								<div className="flex items-center gap-1.5">
 					<p className="truncate text-sm font-medium text-gray-800">
 						{user.name || "Guest"}
 					</p>
+
+					{/* Session badge — only in history */}
+					{variant === "history" && participant.sessionIndex > 0 && (
+						<span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-gray-500">
+							Session {participant.sessionIndex + 1}
+						</span>
+					)}
+
 					{participant.role === "HOST" && (
 						<Crown className="h-3 w-3 shrink-0 text-amber-500" />
 					)}

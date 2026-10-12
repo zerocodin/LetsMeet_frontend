@@ -18,6 +18,15 @@ const ICONS = {
 	UNKNOWN: AlertTriangle,
 };
 
+const DEFAULT_MESSAGES = {
+	NOT_FOUND: "This meeting doesn't exist or was deleted.",
+	CANCELLED: "The host cancelled this meeting.",
+	COMPLETED: "This meeting has already ended.",
+	PRIVATE: "This is a private meeting. You need an invite to join.",
+	FULL: "This meeting is at maximum capacity.",
+	UNKNOWN: "Something went wrong while trying to join.",
+};
+
 /**
  * @param {string} code  — enum: NOT_FOUND | CANCELLED | COMPLETED | PRIVATE | FULL | UNKNOWN
  * @param {string} message
@@ -25,6 +34,7 @@ const ICONS = {
 export default function JoinError({ code = "UNKNOWN", message }) {
 	const navigate = useNavigate();
 	const Icon = ICONS[code] || ICONS.UNKNOWN;
+	const fallbackMessage = DEFAULT_MESSAGES[code] || DEFAULT_MESSAGES.UNKNOWN;
 
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
@@ -37,7 +47,7 @@ export default function JoinError({ code = "UNKNOWN", message }) {
 					Can't join this meeting
 				</h2>
 				<p className="mt-2 text-sm text-gray-600">
-					{message || "Something went wrong while trying to join."}
+					{message || fallbackMessage}
 				</p>
 
 				<div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
@@ -49,11 +59,11 @@ export default function JoinError({ code = "UNKNOWN", message }) {
 						Go back
 					</button>
 					<button
-						onClick={() => navigate("/home")}
+						onClick={() => navigate("/meet")}
 						className="inline-flex items-center justify-center gap-2 rounded-lg bg-linear-to-r from-[#3e4bc4] to-[#8B5CF6] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:scale-[1.02]"
 					>
 						<Home className="h-4 w-4" />
-						Go home
+						My meetings
 					</button>
 				</div>
 			</div>
