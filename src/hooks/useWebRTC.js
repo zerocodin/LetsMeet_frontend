@@ -18,94 +18,13 @@ export const useWebRTC = ({
 	const onRemoteStreamRef = useRef(onRemoteStream);
 	const onRemoveRef = useRef(onRemoteStreamRemoved);
 	const getMetaRef = useRef(getParticipantMeta);
+	const pendingPeersRef = useRef(new Set());
+
 	useEffect(() => {
 		onRemoteStreamRef.current = onRemoteStream;
 		onRemoveRef.current = onRemoteStreamRemoved;
 		getMetaRef.current = getParticipantMeta;
 	});
-
-	// CREATE A PEER CONNECTION
-	const createPeer = useCallback(
-		(remoteSocketId) => {
-			// Reuse if exists
-			if (peerConnections.current.has(remoteSocketId)) {
-				return peerConnections.current.get(remoteSocketId);
-			}
-
-			const pc = new RTCPeerConnection(RTC_CONFIG);
-
-			//  Attach local tracks so remote sees/hears us
-			const localStream = localStreamRef.current;
-			if (localStream) {
-				localStream.getTracks().forEach((track) => {
-					pc.addTrack(track, localStream);
-				});
-			}
-
-			// Receive remote tracks 
-			const remoteStream = new MediaStream();
-
-			pc.ontrack = (event) => {
-				event.streams[0]?.getTracks().forEach((track) => {
-					// Avoid duplicates when track already added
-					if (!remoteStream.getTracks().some((t) => t.id === track.id)) {
-						remoteStream.addTrack(track);
-					}
-				});
-
-				// If the event has its own stream (modern browsers), use that instead
-				const stream = event.streams[0] || remoteStream;
-				onRemoteStreamRef.current?.(remoteSocketId, stream, getMetaRef.current?.(remoteSocketId));
-			};
-
-			// ICE candidates → send to remote 
-			pc.onicecandidate = (event) => {
-				if (event.candidate) {
-					const socket = getSocket();
-					socket.emit("webrtc-ice-candidate", {
-						targetSocketId: remoteSocketId,
-						candidate: event.candidate,
-					});
-				}
-			};
-
-			// Connection state tracking 
-			pc.onconnectionstatechange = () => {
-				console.log(`[PC ${remoteSocketId}] state: ${pc.connectionState}`);
-				if (
-					pc.connectionState === "failed" ||
-					pc.connectionState === "closed"
-				) {
-					// Try ICE restart once
-					if (pc.connectionState === "failed") {
-						console.warn(`[PC ${remoteSocketId}] connection failed, restarting ICE`);
-						try {
-							pc.restartIce();
-						} catch (err) {
-							console.error("ICE restart failed:", err);
-						}
-					}
-				}
-			};
-
-			pc.oniceconnectionstatechange = () => {
-				if (pc.iceConnectionState === "disconnected") {
-					console.warn(`[PC ${remoteSocketId}] ICE disconnected`);
-					// Give it 5s to recover before we consider it dead
-					setTimeout(() => {
-						if (pc.iceConnectionState === "disconnected") {
-							console.warn(`[PC ${remoteSocketId}] still disconnected → closing`);
-							closePeer(remoteSocketId);
-						}
-					}, 5000);
-				}
-			};
-
-			peerConnections.current.set(remoteSocketId, pc);
-			return pc;
-		},
-		[localStreamRef, peerConnections]
-	);
 
 	// CLOSE A PEER
 	const closePeer = useCallback(
@@ -123,7 +42,104 @@ export const useWebRTC = ({
 			}
 			onRemoveRef.current?.(remoteSocketId);
 		},
-		[peerConnections]
+		[peerConnections],
+	);
+
+	// CREATE A PEER CONNECTION
+	const createPeer = useCallback(
+		(remoteSocketId) => {
+			// Reuse if exists
+			if (peerConnections.current.has(remoteSocketId)) {
+				return peerConnections.current.get(remoteSocketId);
+			}
+
+			const localStream = localStreamRef.current;
+			if (!localStream) {
+				pendingPeersRef.current.add(remoteSocketId);
+				return null;
+			}
+
+			const pc = new RTCPeerConnection(RTC_CONFIG);
+
+			//  Attach local tracks so remote sees/hears us
+			// const localStream = localStreamRef.current;
+			// if (localStream) {
+			localStream.getTracks().forEach((track) => {
+				pc.addTrack(track, localStream);
+			});
+			// }
+
+			// Receive remote tracks
+			const remoteStream = new MediaStream();
+
+			pc.ontrack = (event) => {
+				event.streams[0]?.getTracks().forEach((track) => {
+					// Avoid duplicates when track already added
+					if (!remoteStream.getTracks().some((t) => t.id === track.id)) {
+						remoteStream.addTrack(track);
+					}
+				});
+
+				// If the event has its own stream (modern browsers), use that instead
+				const stream = event.streams[0] || remoteStream;
+				onRemoteStreamRef.current?.(
+					remoteSocketId,
+					stream,
+					getMetaRef.current?.(remoteSocketId),
+				);
+			};
+
+			// ICE candidates → send to remote
+			pc.onicecandidate = (event) => {
+				if (event.candidate) {
+					const socket = getSocket();
+					socket.emit("webrtc-ice-candidate", {
+						targetSocketId: remoteSocketId,
+						candidate: event.candidate,
+					});
+				}
+			};
+
+			// Connection state tracking
+			pc.onconnectionstatechange = () => {
+				console.log(`[PC ${remoteSocketId}] state: ${pc.connectionState}`);
+				if (
+					pc.connectionState === "failed" ||
+					pc.connectionState === "closed"
+				) {
+					// Try ICE restart once
+					if (pc.connectionState === "failed") {
+						console.warn(
+							`[PC ${remoteSocketId}] connection failed, restarting ICE`,
+						);
+						try {
+							pc.restartIce();
+						} catch (err) {
+							console.error("ICE restart failed:", err);
+						}
+					}
+				}
+			};
+
+			pc.oniceconnectionstatechange = () => {
+				if (pc.iceConnectionState === "disconnected") {
+					console.warn(`[PC ${remoteSocketId}] ICE disconnected`);
+					// Give it 5s to recover before we consider it dead
+					setTimeout(() => {
+						if (pc.iceConnectionState === "disconnected") {
+							console.warn(
+								`[PC ${remoteSocketId}] still disconnected → closing`,
+							);
+							closePeer(remoteSocketId);
+						}
+					}, 5000);
+				}
+			};
+
+			peerConnections.current.set(remoteSocketId, pc);
+			return pc;
+		},
+		[localStreamRef, peerConnections],
 	);
 
 	// INITIATE OFFER (new joiner → existing participants)
@@ -131,15 +147,13 @@ export const useWebRTC = ({
 		async (remoteSocketId) => {
 			try {
 				const pc = createPeer(remoteSocketId);
-
+				if (!pc) return; // bail — we'll retry when the stream lands
 				const offer = await pc.createOffer({
 					offerToReceiveAudio: true,
 					offerToReceiveVideo: true,
 				});
 				await pc.setLocalDescription(offer);
-
-				const socket = getSocket();
-				socket.emit("webrtc-offer", {
+				getSocket().emit("webrtc-offer", {
 					targetSocketId: remoteSocketId,
 					offer,
 				});
@@ -147,8 +161,15 @@ export const useWebRTC = ({
 				console.error("callPeer error:", err);
 			}
 		},
-		[createPeer]
+		[createPeer],
 	);
+
+	const retryPending = useCallback(() => {
+		if (!localStreamRef.current) return;
+		const pending = Array.from(pendingPeersRef.current);
+		pendingPeersRef.current.clear();
+		pending.forEach((id) => callPeer(id));
+	}, [localStreamRef, callPeer]);
 
 	// SOCKET EVENT HANDLERS — bound once
 	useEffect(() => {
@@ -159,19 +180,16 @@ export const useWebRTC = ({
 		const onOffer = async ({ fromSocketId, offer }) => {
 			try {
 				const pc = createPeer(fromSocketId);
+				if (!pc) return; // don't answer an offer we can't fulfill
 
 				await pc.setRemoteDescription(new RTCSessionDescription(offer));
-
-				// Apply any queued ICE candidates that arrived before the offer
 				await flushQueuedCandidates(fromSocketId, pc);
 
 				const answer = await pc.createAnswer();
+
 				await pc.setLocalDescription(answer);
 
-				socket.emit("webrtc-answer", {
-					targetSocketId: fromSocketId,
-					answer,
-				});
+				socket.emit("webrtc-answer", { targetSocketId: fromSocketId, answer });
 			} catch (err) {
 				console.error("onOffer error:", err);
 			}
@@ -188,7 +206,7 @@ export const useWebRTC = ({
 					await flushQueuedCandidates(fromSocketId, pc);
 				} else {
 					console.warn(
-						`[PC ${fromSocketId}] answer received in wrong state: ${pc.signalingState}`
+						`[PC ${fromSocketId}] answer received in wrong state: ${pc.signalingState}`,
 					);
 				}
 			} catch (err) {
@@ -226,7 +244,7 @@ export const useWebRTC = ({
 			setTimeout(() => callPeer(socketId), 500);
 		};
 
-		// articipant left → close their peer  
+		// articipant left → close their peer
 		const onParticipantLeft = ({ socketId }) => {
 			closePeer(socketId);
 		};
@@ -295,7 +313,7 @@ export const useWebRTC = ({
 			});
 			return Promise.all(promises);
 		},
-		[peerConnections]
+		[peerConnections],
 	);
 
 	// CALL ALL EXISTING PEERS (used after join ack)
@@ -303,7 +321,7 @@ export const useWebRTC = ({
 		(existingSocketIds) => {
 			existingSocketIds.forEach((id) => callPeer(id));
 		},
-		[callPeer]
+		[callPeer],
 	);
 
 	// CLEANUP ALL PEERS
@@ -316,6 +334,7 @@ export const useWebRTC = ({
 	return {
 		callPeer,
 		callAllPeers,
+		retryPending,
 		closePeer,
 		closeAllPeers,
 		replaceVideoTrackOnAllPeers,

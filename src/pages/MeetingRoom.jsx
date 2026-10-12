@@ -124,29 +124,27 @@ export default function MeetingRoom() {
 	);
 
 	useMediaDevices({
-		startCamera: !myParticipant?.isCameraOff,
-		startMic: !myParticipant?.isMuted,
 		onStreamReady: handleStreamReady,
 	});
 
 	// WebRTC
-	useWebRTC({
-		localStreamRef,
-		screenStreamRef,
-		peerConnections,
-		onRemoteStream: (socketId, stream) => {
-			setRemoteStreams((prev) => new Map(prev).set(socketId, stream));
-		},
-		onRemoteStreamRemoved: (socketId) => {
-			setRemoteStreams((prev) => {
-				const next = new Map(prev);
-				next.delete(socketId);
-				return next;
-			});
-		},
-		getParticipantMeta: (socketId) =>
-			participants.find((p) => p.socketId === socketId),
-	});
+	const { callPeer, retryPending } = useWebRTC({
+    localStreamRef,
+    screenStreamRef,
+    peerConnections,
+    onRemoteStream: (socketId, stream) => {
+        setRemoteStreams((prev) => new Map(prev).set(socketId, stream));
+    },
+    onRemoteStreamRemoved: (socketId) => {
+        setRemoteStreams((prev) => {
+            const next = new Map(prev);
+            next.delete(socketId);
+            return next;
+        });
+    },
+    getParticipantMeta: (socketId) =>
+        participants.find((p) => p.socketId === socketId),
+});
 
 	useMeetingEvents();
 
@@ -318,6 +316,12 @@ export default function MeetingRoom() {
 			setLocalScreenStream(null);
 		}
 	}, [isScreenSharing]);
+
+	useEffect(() => {
+		if (localStream) {
+			retryPending();
+		}
+	}, [localStream, retryPending]);
 
 	// Render
 	if (bootstrapping || !meeting) {

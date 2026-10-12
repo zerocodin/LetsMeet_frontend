@@ -6,8 +6,6 @@ import toast from "react-hot-toast";
  * Does NOT touch WebRTC — that's the job of useWebRTC later.
  * */
 export const useMediaDevices = ({
-	startCamera = true,
-	startMic = true,
 	onStreamReady,
 } = {}) => {
 	const localStreamRef = useRef(null);
@@ -27,20 +25,16 @@ export const useMediaDevices = ({
 		const init = async () => {
 			try {
 				const constraints = {
-					video: startCamera
-						? {
-								width: { ideal: 1280 },
-								height: { ideal: 720 },
-								facingMode: "user",
-							}
-						: { width: { ideal: 640 }, height: { ideal: 360 } },
-					audio: startMic
-						? {
-								echoCancellation: true,
-								noiseSuppression: true,
-								autoGainControl: true,
-							}
-						: true,
+					video: {
+						width: { ideal: 1280 },
+						height: { ideal: 720 },
+						facingMode: "user",
+					},
+					audio: {
+						echoCancellation: true,
+						noiseSuppression: true,
+						autoGainControl: true,
+					},
 				};
 
 				const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -49,12 +43,16 @@ export const useMediaDevices = ({
 					return;
 				}
 
-				// Apply the initial enabled state
 				const videoTrack = stream.getVideoTracks()[0];
 				const audioTrack = stream.getAudioTracks()[0];
 
-				if (videoTrack) videoTrack.enabled = !!startCamera;
-				if (audioTrack) audioTrack.enabled = !!startMic;
+				// always start unmuted and on camera
+				// if (videoTrack) videoTrack.enabled = !!startCamera;
+				// if (audioTrack) audioTrack.enabled = !!startMic;
+
+				// always start muted and off camera
+				if (videoTrack) videoTrack.enabled = false;
+				if (audioTrack) audioTrack.enabled = false;
 
 				localStreamRef.current = stream;
 				cameraTrackRef.current = videoTrack || null;
@@ -98,7 +96,7 @@ export const useMediaDevices = ({
 				screenStreamRef.current = null;
 			}
 		};
-	}, [startCamera, startMic, onStreamReady]);
+	}, []);
 
 	// ENABLE / DISABLE CAMERA (toggle track.enabled)
 	const setCameraEnabled = useCallback((enabled) => {

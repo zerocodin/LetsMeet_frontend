@@ -334,8 +334,9 @@ export function MeetingProvider({ children }) {
 				if (res.status === "JOINED") {
 					setMeeting(res.data.meeting);
 					setMyParticipant(res.data.participant);
-					setIsMuted(res.data.participant.isMuted);
-					setIsCameraOff(res.data.participant.isCameraOff);
+					setIsMuted(true);
+					// setIsCameraOff(res.data.participant.isCameraOff);
+					setIsCameraOff(true);
 					setIsScreenSharing(res.data.participant.isScreenSharing);
 
 					// Connect socket + bind listeners
@@ -387,8 +388,9 @@ export function MeetingProvider({ children }) {
 				if (res.status === "JOINED") {
 					setMeeting(res.data.meeting);
 					setMyParticipant(res.data.participant);
-					setIsMuted(res.data.participant.isMuted);
-					setIsCameraOff(res.data.participant.isCameraOff);
+					setIsMuted(true);
+					// setIsCameraOff(res.data.participant.isCameraOff);
+					setIsCameraOff(true);
 					setIsScreenSharing(res.data.participant.isScreenSharing);
 
 					connectSocket();
