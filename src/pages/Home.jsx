@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import toast from "react-hot-toast";
 import {
 	Users,
-	MessageSquare,
 	Bell,
 	Sparkles,
 	Calendar,
@@ -13,33 +13,7 @@ import {
 import Sidebar from "../components/layout/Sidebar";
 import AppLayout from "../components/layout/AppLayout";
 import CreateMeetingModal from "../components/meeting/CreateMeetingModal";
-
-const stats = [
-	{
-		label: "Friends",
-		value: 12,
-		icon: Users,
-		color: "from-blue-500 to-indigo-500",
-	},
-	{
-		label: "Messages",
-		value: 4,
-		icon: MessageSquare,
-		color: "from-pink-500 to-rose-500",
-	},
-	{
-		label: "Notifications",
-		value: 3,
-		icon: Bell,
-		color: "from-amber-500 to-orange-500",
-	},
-	{
-		label: "Events",
-		value: 2,
-		icon: Calendar,
-		color: "from-emerald-500 to-teal-500",
-	},
-];
+import userService from "../services/user.Service";
 
 const feed = [
 	{
@@ -74,6 +48,61 @@ const feed = [
 export default function Home() {
 	const [showCreate, setShowCreate] = useState(false);
 	const [initialMode, setInitialMode] = useState(undefined);
+
+	const [statsData, setStatsData] = useState({
+		friends: 0,
+		meetings: 0,
+		notifications: 0,
+		events: 0,
+	});
+	const [statsLoading, setStatsLoading] = useState(true);
+
+	const fetchStats = useCallback(async () => {
+		try {
+			const res = await userService.getStats();
+			setStatsData(res.data || {});
+		} catch (err) {
+			// Silent — don't spam toasts on Home
+			console.error("Failed to load stats:", err);
+		} finally {
+			setStatsLoading(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		fetchStats();
+		// Refresh every 60s so counts stay fresh
+		const id = setInterval(fetchStats, 60_000);
+		return () => clearInterval(id);
+	}, [fetchStats]);
+
+	// Config — map API keys to visual metadata
+	const statConfig = [
+		{
+			key: "friends",
+			label: "Friends",
+			icon: Users,
+			color: "from-blue-500 to-indigo-500",
+		},
+		{
+			key: "meetings",
+			label: "Meetings",
+			icon: Video, // reuse Video icon
+			color: "from-pink-500 to-rose-500",
+		},
+		{
+			key: "notifications",
+			label: "Unread",
+			icon: Bell,
+			color: "from-amber-500 to-orange-500",
+		},
+		{
+			key: "events",
+			label: "Events",
+			icon: Calendar,
+			color: "from-emerald-500 to-teal-500",
+		},
+	];
 
 	const openCreate = (mode) => {
 		setInitialMode(mode);
@@ -112,24 +141,32 @@ export default function Home() {
 
 			{/* Stats */}
 			<div className="mb-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-				{stats.map(({ label, value, icon: Icon, color }) => (
-					<div
-						key={label}
-						className="flex items-center gap-4 rounded-2xl border border-white/60 bg-white/70 p-5 shadow-md backdrop-blur-lg transition-transform hover:-translate-y-0.5 hover:shadow-lg"
-					>
+				{statConfig.map(({ key, label, icon: Icon, color }) => {
+					const value = statsData[key] ?? 0;
+
+					return (
 						<div
-							className={`flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br ${color} text-white shadow-md`}
+							key={key}
+							className="flex items-center gap-4 rounded-2xl border border-white/60 bg-white/70 p-5 shadow-md backdrop-blur-lg transition-transform hover:-translate-y-0.5 hover:shadow-lg"
 						>
-							<Icon className="h-5 w-5" />
+							<div
+								className={`flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br ${color} text-white shadow-md`}
+							>
+								<Icon className="h-5 w-5" />
+							</div>
+							<div className="min-w-0 flex-1">
+								<p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+									{label}
+								</p>
+								{statsLoading ? (
+									<div className="mt-1 h-7 w-12 animate-pulse rounded-md bg-gray-200" />
+								) : (
+									<p className="text-2xl font-bold text-gray-800">{value}</p>
+								)}
+							</div>
 						</div>
-						<div>
-							<p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-								{label}
-							</p>
-							<p className="text-2xl font-bold text-gray-800">{value}</p>
-						</div>
-					</div>
-				))}
+					);
+				})}
 			</div>
 
 			{/* Two-column area */}
