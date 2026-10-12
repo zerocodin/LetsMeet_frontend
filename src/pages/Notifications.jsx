@@ -25,7 +25,10 @@ const FILTERS = [
 
 const TYPE_CONFIG = {
 	FRIEND_REQUEST: { icon: UserPlus, color: "bg-indigo-100 text-indigo-600" },
-	FRIEND_ACCEPTED: { icon: UserCheck, color: "bg-emerald-100 text-emerald-600" },
+	FRIEND_ACCEPTED: {
+		icon: UserCheck,
+		color: "bg-emerald-100 text-emerald-600",
+	},
 	FRIEND_REJECTED: { icon: UserX, color: "bg-red-100 text-red-600" },
 	MEETING_INVITE: { icon: Video, color: "bg-purple-100 text-purple-600" },
 	MEETING_STARTING: { icon: Clock, color: "bg-amber-100 text-amber-600" },
@@ -61,7 +64,27 @@ export default function Notifications() {
 
 	const handleClick = async (n) => {
 		if (!n.isRead) await markAsRead(n._id);
-		if (n.link) navigate(n.link);
+		if (!n.link) return;
+
+		// Smart toast based on meeting state captured at notification time
+		if (n.type === "MEETING_INVITE" || n.type === "MEETING_STARTING") {
+			const status = n.meta?.meetingStatus;
+
+			if (status === "CANCELLED") {
+				toast.error("This meeting was cancelled");
+				return; // don't navigate — dead link
+			}
+			if (status === "COMPLETED") {
+				toast.error("This meeting has already ended");
+				return;
+			}
+
+			toast("Opening meeting...", { icon: "🎥", duration: 1500 });
+		} else if (n.type === "FRIEND_REQUEST") {
+			toast("Opening friends...", { icon: "👥", duration: 1500 });
+		}
+
+		navigate(n.link);
 	};
 
 	const handleClearRead = async () => {
@@ -112,8 +135,7 @@ export default function Notifications() {
 			{/* Filter tabs */}
 			<div className="mb-5 flex flex-wrap gap-2">
 				{FILTERS.map((f) => {
-					const count =
-						f.key === "unread" ? unreadCount : notifications.length;
+					const count = f.key === "unread" ? unreadCount : notifications.length;
 					return (
 						<button
 							key={f.key}
@@ -162,7 +184,7 @@ export default function Notifications() {
 	);
 }
 
-//  Single row 
+//  Single row
 function NotificationRow({ notification: n, onClick, onDelete }) {
 	const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.SYSTEM;
 	const Icon = cfg.icon;
@@ -217,9 +239,7 @@ function NotificationRow({ notification: n, onClick, onDelete }) {
 					</div>
 
 					{n.body && (
-						<p className="mt-1 line-clamp-2 text-sm text-gray-600">
-							{n.body}
-						</p>
+						<p className="mt-1 line-clamp-2 text-sm text-gray-600">{n.body}</p>
 					)}
 
 					{n.from && (
@@ -245,7 +265,7 @@ function NotificationRow({ notification: n, onClick, onDelete }) {
 	);
 }
 
-//  Empty state 
+//  Empty state
 function EmptyState({ filter }) {
 	return (
 		<div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white/50 py-20 text-center backdrop-blur">
@@ -253,7 +273,9 @@ function EmptyState({ filter }) {
 				<Inbox className="h-6 w-6 text-[#3e4bc4]" />
 			</div>
 			<h3 className="text-base font-bold text-gray-800">
-				{filter === "unread" ? "No unread notifications" : "No notifications yet"}
+				{filter === "unread"
+					? "No unread notifications"
+					: "No notifications yet"}
 			</h3>
 			<p className="mt-1 max-w-xs text-sm text-gray-500">
 				{filter === "unread"
@@ -264,7 +286,7 @@ function EmptyState({ filter }) {
 	);
 }
 
-//  Helpers 
+//  Helpers
 function formatTimeAgo(iso) {
 	if (!iso) return "";
 	const diff = (Date.now() - new Date(iso).getTime()) / 1000;
