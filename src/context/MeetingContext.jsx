@@ -469,8 +469,11 @@ export function MeetingProvider({ children }) {
 	// MEDIA TOGGLES (persist + broadcast)
 	const toggleMute = useCallback(async () => {
 		if (!meeting?._id) return;
+
 		const next = !isMuted;
+
 		setIsMuted(next);
+		setMyParticipant((p) => (p ? { ...p, isMuted: next } : p)); // New Added
 
 		const socket = getSocket();
 		if (socket?.connected) socket.emit("toggle-mute", { isMuted: next });
@@ -484,8 +487,11 @@ export function MeetingProvider({ children }) {
 
 	const toggleCamera = useCallback(async () => {
 		if (!meeting?._id) return;
+
 		const next = !isCameraOff;
+
 		setIsCameraOff(next);
+		setMyParticipant((p) => (p ? { ...p, isCameraOff: next } : p)); // New Added
 
 		const socket = getSocket();
 		if (socket?.connected) socket.emit("toggle-camera", { isCameraOff: next });
@@ -499,8 +505,11 @@ export function MeetingProvider({ children }) {
 
 	const toggleScreenShare = useCallback(async () => {
 		if (!meeting?._id) return;
+
 		const next = !isScreenSharing;
+
 		setIsScreenSharing(next);
+		setMyParticipant((p) => (p ? { ...p, isScreenSharing: next } : p)); // New Added
 
 		const socket = getSocket();
 		if (socket?.connected)

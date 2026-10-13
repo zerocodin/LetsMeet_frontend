@@ -129,22 +129,22 @@ export default function MeetingRoom() {
 
 	// WebRTC
 	const { callPeer, retryPending } = useWebRTC({
-    localStreamRef,
-    screenStreamRef,
-    peerConnections,
-    onRemoteStream: (socketId, stream) => {
-        setRemoteStreams((prev) => new Map(prev).set(socketId, stream));
-    },
-    onRemoteStreamRemoved: (socketId) => {
-        setRemoteStreams((prev) => {
-            const next = new Map(prev);
-            next.delete(socketId);
-            return next;
-        });
-    },
-    getParticipantMeta: (socketId) =>
-        participants.find((p) => p.socketId === socketId),
-});
+		localStreamRef,
+		screenStreamRef,
+		peerConnections,
+		onRemoteStream: (socketId, stream) => {
+			setRemoteStreams((prev) => new Map(prev).set(socketId, stream));
+		},
+		onRemoteStreamRemoved: (socketId) => {
+			setRemoteStreams((prev) => {
+				const next = new Map(prev);
+				next.delete(socketId);
+				return next;
+			});
+		},
+		getParticipantMeta: (socketId) =>
+			participants.find((p) => p.socketId === socketId),
+	});
 
 	useMeetingEvents();
 
@@ -351,7 +351,13 @@ export default function MeetingRoom() {
 							sharer={activeSharer}
 							sharerStream={sharerStream}
 							localStream={localStream}
-							myParticipant={{ ...myParticipant, name: "You" }}
+							myParticipant={{
+								...myParticipant,
+								name: "You",
+								isMuted,
+								isCameraOff,
+								isScreenSharing,
+							}}
 							remoteStreams={remoteStreams}
 							participants={participants}
 							activeSpeaker={activeSpeaker}
@@ -359,7 +365,13 @@ export default function MeetingRoom() {
 					) : (
 						<VideoGrid
 							localStream={localStream}
-							myParticipant={{ ...myParticipant, name: "You" }}
+							myParticipant={{
+								...myParticipant,
+								name: "You",
+								isMuted,
+								isCameraOff,
+								isScreenSharing,
+							}}
 							remoteStreams={remoteStreams}
 							participants={participants}
 							activeSpeaker={activeSpeaker}
