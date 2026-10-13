@@ -38,6 +38,7 @@ export function MeetingProvider({ children }) {
 	//Socket listeners bound once per join
 	const socketListenersBound = useRef(false);
 	const isChatPanelOpenRef = useRef(false);
+	const leavingRef = useRef(false);
 
 	// Chat state
 	const [messages, setMessages] = useState([]);
@@ -313,6 +314,27 @@ export function MeetingProvider({ children }) {
 	useEffect(() => {
 		isChatPanelOpenRef.current = isChatPanelOpen;
 	}, [isChatPanelOpen]);
+
+	useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const onReconnect = () => {
+		if (leavingRef.current) return;
+        if (meeting?._id && status === "JOINED") {
+            socket.emit("join-meeting", { meetingId: meeting._id }, (ack) => {
+                if (ack?.success) {
+                    setParticipants(ack.participants || []);
+                }
+            });
+        }
+    };
+
+    socket.on("connect", onReconnect);
+    return () => {
+        socket.off("connect", onReconnect);
+    };
+}, [meeting?._id, status]);
 
 	// JOIN MEETING
 	const joinByCode = useCallback(

@@ -28,6 +28,9 @@ export default function MeetingRoom() {
 	const { meetingId } = useParams();
 	const navigate = useNavigate();
 
+	const leavingRef = useRef(false);
+	const joinedOnceRef = useRef(false);
+
 	const [soundEnabled, setSoundEnabledState] = useState(isSoundEnabled());
 
 	// const { unreadChatCount } = useMeeting();
@@ -90,6 +93,9 @@ export default function MeetingRoom() {
 
 	// Ensure we're joined
 	useEffect(() => {
+		if (leavingRef.current) return;
+		if (joinedOnceRef.current) return;
+
 		let cancelled = false;
 
 		const ensureJoined = async () => {
@@ -99,6 +105,7 @@ export default function MeetingRoom() {
 			}
 			try {
 				await joinById({ meetingId });
+				joinedOnceRef.current = true;
 				if (!cancelled) setBootstrapping(false);
 			} catch (err) {
 				if (cancelled) return;
@@ -111,7 +118,7 @@ export default function MeetingRoom() {
 		return () => {
 			cancelled = true;
 		};
-	}, [meetingId, meeting, status, joinById, navigate]);
+	}, [meetingId]);
 
 	// Local media
 	const handleStreamReady = useCallback(
@@ -211,6 +218,7 @@ export default function MeetingRoom() {
 
 	// Leave handlers
 	const confirmLeave = useCallback(async () => {
+		leavingRef.current = true;
 		setShowLeaveModal(false);
 		try {
 			await leave();
@@ -338,7 +346,7 @@ export default function MeetingRoom() {
 			<RoomHeader
 				meeting={meeting}
 				participantCount={participants.length + 1}
-				startedAt={meeting.scheduledAt}
+				startedAt={meeting.startedAt || meeting.scheduledAt}
 				isAnyoneRecording={isRecording || remoteIsRecording}
 				recordingBy={isRecording ? "you" : remoteIsRecording ? "host" : null}
 			/>
