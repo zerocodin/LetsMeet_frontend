@@ -238,7 +238,7 @@ export default function MeetingRoom() {
 	}, [hostEndForAll]);
 
 	// Recorder — records the LOCAL stream
-	const {
+	/* const {
 		isRecording,
 		start: startRecording,
 		stop: stopRecording,
@@ -275,7 +275,14 @@ export default function MeetingRoom() {
 		broadcastRecordingStart,
 		broadcastRecordingStop,
 		meetingId,
-	]);
+	]); */
+
+	// Recording is not yet supported — button just shows a toast
+	const isRecording = false;
+
+	const handleToggleRecording = useCallback(() => {
+		toast("Recording feature is coming soon...", { icon: "🎬" });
+	}, []);
 
 	useRoomShortcuts({
 		onToggleMute: toggleMute,
@@ -295,7 +302,7 @@ export default function MeetingRoom() {
 			if (!showPeople) setShowChat(false);
 		},
 		onLeave: () => setShowLeaveModal(true),
-		onToggleRecording: isHost ? handleToggleRecording : undefined,
+		onToggleRecording: handleToggleRecording,
 	});
 
 	// Auto-stop recording when leaving

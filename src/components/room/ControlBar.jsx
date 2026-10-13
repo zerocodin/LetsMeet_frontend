@@ -77,15 +77,13 @@ export default function ControlBar({
 				/>
 
 				{/* Record — host only */}
-				{isHost && (
-					<ControlButton
-						onClick={onToggleRecording}
-						active={isRecording}
-						icon={isRecording ? Square : Circle}
-						label={isRecording ? "Stop recording" : "Start recording"}
-						variant={isRecording ? "danger" : "neutral"}
-					/>
-				)}
+				<ControlButton
+					onClick={onToggleRecording}
+					active={isRecording}
+					icon={isRecording ? Square : Circle}
+					label={isRecording ? "Stop recording" : "Start recording"}
+					variant={isRecording ? "danger" : "neutral"}
+				/>
 
 				<div className="mx-1 h-8 w-px bg-white/10" />
 
