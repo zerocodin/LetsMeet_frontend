@@ -622,15 +622,21 @@ export function MeetingProvider({ children }) {
 	);
 
 	const hostUnmute = useCallback(
-		async (participantId) => {
+		async (participantId, targetSocketId) => {
 			if (!meeting?._id) return;
 			try {
 				await meetingService.unmuteParticipant(meeting._id, participantId);
-				setParticipants((prev) =>
-					prev.map((p) =>
-						p.participantId === participantId ? { ...p, isMuted: false } : p,
-					),
-				);
+
+				const socket = getSocket();
+				if (socket?.connected && targetSocketId) {
+					socket.emit("host-ask-unmute-user", { targetSocketId });
+				}
+
+				// setParticipants((prev) =>
+				// 	prev.map((p) =>
+				// 		p.participantId === participantId ? { ...p, isMuted: false } : p,
+				// 	),
+				// );
 			} catch (err) {
 				toast.error(err.message || "Failed to unmute participant");
 			}

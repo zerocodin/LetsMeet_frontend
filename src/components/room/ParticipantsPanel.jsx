@@ -16,18 +16,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
-/**
- * @param {Object} props
- * @param {Array} props.participants  — from MeetingContext (includes self via ack)
- * @param {Object} props.myParticipant
- * @param {Object} props.meeting
- * @param {boolean} props.isHost
- * @param {Function} props.onMute       — (participantId, socketId) => void
- * @param {Function} props.onUnmute     — (participantId) => void
- * @param {Function} props.onRemove     — (participantId, socketId) => void
- * @param {Function} props.onPromote    — (participantId) => void
- * @param {Function} props.onDemote     — (participantId) => void
- */
 export default function ParticipantsPanel({
 	participants,
 	myParticipant,
@@ -226,7 +214,7 @@ function ParticipantRow({
 									icon={Mic}
 									label="Ask to unmute"
 									onClick={() => {
-										onUnmute(participant.participantId);
+										onUnmute(participant.participantId, participant.socketId);
 										setMenuOpen(false);
 									}}
 								/>

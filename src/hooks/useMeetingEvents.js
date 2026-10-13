@@ -63,16 +63,25 @@ export const useMeetingEvents = () => {
 			});
 		};
 
+		const onAskUnmute = () => {
+			toast("Host is unmuted you", { icon: "🎤", duration: 4000 });
+			if (isMutedRef.current) {
+				toggleMute();
+			}
+		};
+
 		socket.on("force-muted", onForceMuted);
 		socket.on("kicked", onKicked);
 		socket.on("meeting-ended", onMeetingEnded);
 		socket.on("force-stop-share", onForceStopShare);
+		socket.on("ask-unmute", onAskUnmute);
 
 		return () => {
 			socket.off("force-muted", onForceMuted);
 			socket.off("kicked", onKicked);
 			socket.off("meeting-ended", onMeetingEnded);
 			socket.off("force-stop-share", onForceStopShare);
+			socket.off("ask-unmute", onAskUnmute);
 		};
 	}, [toggleMute, handleRemoteEnd, isScreenSharing, toggleScreenShare]);
 };
