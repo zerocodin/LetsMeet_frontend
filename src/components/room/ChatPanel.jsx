@@ -207,7 +207,7 @@ function ChatMessage({ message, isMine, canDelete, onDelete }) {
 					{canDelete && (
 						<button
 							onClick={onDelete}
-							className="mb-1 rounded p-0.5 text-gray-500 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
+							className="mb-1 rounded p-0.5 text-gray-500 transition-colors hover:bg-white/10 hover:text-red-400 lg:opacity-0 lg:group-hover:opacity-100"
 							title="Delete message"
 						>
 							<Trash2 className="h-3 w-3" />

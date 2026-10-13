@@ -201,7 +201,7 @@ function ParticipantRow({
 				<div ref={menuRef} className="relative">
 					<button
 						onClick={() => setMenuOpen((v) => !v)}
-						className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 opacity-0 transition-opacity hover:bg-white/10 hover:text-white group-hover:opacity-100"
+						className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-white/10 hover:text-white"
 					>
 						<MoreVertical className="h-4 w-4" />
 					</button>
