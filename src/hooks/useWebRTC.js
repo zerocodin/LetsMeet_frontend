@@ -32,11 +32,11 @@ export const useWebRTC = ({
 			const pc = peerConnections.current.get(remoteSocketId);
 			if (pc) {
 				// Stop senders
-				pc.getSenders().forEach((sender) => {
+				/*pc.getSenders().forEach((sender) => {
 					try {
 						sender.track?.stop?.();
 					} catch {}
-				});
+				});*/
 				pc.close();
 				peerConnections.current.delete(remoteSocketId);
 			}

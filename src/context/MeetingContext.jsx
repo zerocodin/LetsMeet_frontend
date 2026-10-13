@@ -421,7 +421,7 @@ export function MeetingProvider({ children }) {
 	);
 
 	// LEAVE / END
-	const leave = useCallback(async () => {
+	/*const leave = useCallback(async () => {
 		if (!meeting?._id) return;
 
 		try {
@@ -464,7 +464,47 @@ export function MeetingProvider({ children }) {
 			toast.error(err.message || "Failed to leave meeting");
 			throw err;
 		}
-	}, [meeting, navigate, unbindSocketListeners]);
+	}, [meeting, navigate, unbindSocketListeners]);*/
+
+	const leave = useCallback(async () => {
+    if (!meeting?._id) return;
+
+    // Always run cleanup + navigation, even if REST fails
+    const cleanup = () => {
+        unbindSocketListeners();
+        disconnectSocket();
+        peerConnections.current.forEach((pc) => pc.close());
+        peerConnections.current.clear();
+
+        if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach((t) => t.stop());
+            localStreamRef.current = null;
+        }
+        if (screenStreamRef.current) {
+            screenStreamRef.current.getTracks().forEach((t) => t.stop());
+            screenStreamRef.current = null;
+        }
+
+        setMeeting(null);
+        setMyParticipant(null);
+        setParticipants([]);
+        setStatus("IDLE");
+    };
+
+    try {
+        const socket = getSocket();
+        if (socket?.connected) socket.emit("leave-meeting");
+
+        const res = await meetingService.leaveMeeting(meeting._id);
+        if (res?.data?.meetingEnded) toast.success("Meeting ended for all");
+        else toast.success("Left the meeting");
+    } catch (err) {
+        toast.error(err.message || "Failed to leave meeting");
+    } finally {
+        cleanup();
+        navigate("/home");
+    }
+}, [meeting, navigate, unbindSocketListeners]);
 
 	// MEDIA TOGGLES (persist + broadcast)
 	const toggleMute = useCallback(async () => {
