@@ -17,6 +17,7 @@ export default function ChatPanel({ meetingId }) {
 		sendMessage,
 		deleteMessage,
 		openPanel,
+		closePanel,
 	} = useChat(meetingId);
 
 	const [draft, setDraft] = useState("");
@@ -30,7 +31,10 @@ export default function ChatPanel({ meetingId }) {
 	useEffect(() => {
 		openPanel();
 		inputRef.current?.focus();
-	}, [openPanel]);
+		return () => {
+			closePanel();
+		};
+	}, [openPanel, closePanel]);
 
 	// Auto-scroll when new messages arrive
 	useEffect(() => {
@@ -43,8 +47,7 @@ export default function ChatPanel({ meetingId }) {
 	const handleScroll = () => {
 		const el = scrollRef.current;
 		if (!el) return;
-		const distanceFromBottom =
-			el.scrollHeight - el.scrollTop - el.clientHeight;
+		const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
 		stickToBottomRef.current = distanceFromBottom < 80;
 	};
 
@@ -104,9 +107,7 @@ export default function ChatPanel({ meetingId }) {
 				) : messages.length === 0 ? (
 					<div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
 						<MessageSquare className="h-8 w-8 text-gray-700" />
-						<p className="text-sm font-medium text-gray-400">
-							No messages yet
-						</p>
+						<p className="text-sm font-medium text-gray-400">No messages yet</p>
 						<p className="text-xs text-gray-600">
 							Say hi to everyone in the meeting
 						</p>
@@ -181,7 +182,7 @@ export default function ChatPanel({ meetingId }) {
 	);
 }
 
-// Single message bubble 
+// Single message bubble
 function ChatMessage({ message, isMine, canDelete, onDelete }) {
 	const time = new Date(message.sentAt).toLocaleTimeString(undefined, {
 		hour: "2-digit",

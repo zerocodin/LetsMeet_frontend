@@ -8,6 +8,7 @@ import React, {
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useEffect } from "react";
+import { useAuth } from "./AuthContext";
 
 import chatService from "../services/chat.Service";
 import meetingService from "../services/meeting.Service";
@@ -23,6 +24,13 @@ export function MeetingProvider({ children }) {
 	const [myParticipant, setMyParticipant] = useState(null); // { _id, role, ... }
 	const [participants, setParticipants] = useState([]); // live list (from socket)
 	const [status, setStatus] = useState("IDLE"); // IDLE | WAITING | JOINED | ENDED
+
+	const { user } = useAuth();
+	const myUserIdRef = useRef(null);
+
+	useEffect(() => {
+		myUserIdRef.current = user?._id || null;
+	}, [user]);
 
 	// Local media state (mirrored to DB + socket)
 	const [isMuted, setIsMuted] = useState(false);
@@ -185,7 +193,9 @@ export function MeetingProvider({ children }) {
 		);
 
 		// Increment unread if panel is closed
-		if (!isChatPanelOpenRef.current) setUnreadChatCount((c) => c + 1);
+		const isMine = msg.from?.userId === myUserIdRef.current;
+		if (!isMine && !isChatPanelOpenRef.current)
+			setUnreadChatCount((c) => c + 1);
 	}, []);
 
 	//  Chat: load older
@@ -316,25 +326,25 @@ export function MeetingProvider({ children }) {
 	}, [isChatPanelOpen]);
 
 	useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+		const socket = getSocket();
+		if (!socket) return;
 
-    const onReconnect = () => {
-		if (leavingRef.current) return;
-        if (meeting?._id && status === "JOINED") {
-            socket.emit("join-meeting", { meetingId: meeting._id }, (ack) => {
-                if (ack?.success) {
-                    setParticipants(ack.participants || []);
-                }
-            });
-        }
-    };
+		const onReconnect = () => {
+			if (leavingRef.current) return;
+			if (meeting?._id && status === "JOINED") {
+				socket.emit("join-meeting", { meetingId: meeting._id }, (ack) => {
+					if (ack?.success) {
+						setParticipants(ack.participants || []);
+					}
+				});
+			}
+		};
 
-    socket.on("connect", onReconnect);
-    return () => {
-        socket.off("connect", onReconnect);
-    };
-}, [meeting?._id, status]);
+		socket.on("connect", onReconnect);
+		return () => {
+			socket.off("connect", onReconnect);
+		};
+	}, [meeting?._id, status]);
 
 	// JOIN MEETING
 	const joinByCode = useCallback(
@@ -489,44 +499,44 @@ export function MeetingProvider({ children }) {
 	}, [meeting, navigate, unbindSocketListeners]);*/
 
 	const leave = useCallback(async () => {
-    if (!meeting?._id) return;
+		if (!meeting?._id) return;
 
-    // Always run cleanup + navigation, even if REST fails
-    const cleanup = () => {
-        unbindSocketListeners();
-        disconnectSocket();
-        peerConnections.current.forEach((pc) => pc.close());
-        peerConnections.current.clear();
+		// Always run cleanup + navigation, even if REST fails
+		const cleanup = () => {
+			unbindSocketListeners();
+			disconnectSocket();
+			peerConnections.current.forEach((pc) => pc.close());
+			peerConnections.current.clear();
 
-        if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach((t) => t.stop());
-            localStreamRef.current = null;
-        }
-        if (screenStreamRef.current) {
-            screenStreamRef.current.getTracks().forEach((t) => t.stop());
-            screenStreamRef.current = null;
-        }
+			if (localStreamRef.current) {
+				localStreamRef.current.getTracks().forEach((t) => t.stop());
+				localStreamRef.current = null;
+			}
+			if (screenStreamRef.current) {
+				screenStreamRef.current.getTracks().forEach((t) => t.stop());
+				screenStreamRef.current = null;
+			}
 
-        setMeeting(null);
-        setMyParticipant(null);
-        setParticipants([]);
-        setStatus("IDLE");
-    };
+			setMeeting(null);
+			setMyParticipant(null);
+			setParticipants([]);
+			setStatus("IDLE");
+		};
 
-    try {
-        const socket = getSocket();
-        if (socket?.connected) socket.emit("leave-meeting");
+		try {
+			const socket = getSocket();
+			if (socket?.connected) socket.emit("leave-meeting");
 
-        const res = await meetingService.leaveMeeting(meeting._id);
-        if (res?.data?.meetingEnded) toast.success("Meeting ended for all");
-        else toast.success("Left the meeting");
-    } catch (err) {
-        toast.error(err.message || "Failed to leave meeting");
-    } finally {
-        cleanup();
-        navigate("/home");
-    }
-}, [meeting, navigate, unbindSocketListeners]);
+			const res = await meetingService.leaveMeeting(meeting._id);
+			if (res?.data?.meetingEnded) toast.success("Meeting ended for all");
+			else toast.success("Left the meeting");
+		} catch (err) {
+			toast.error(err.message || "Failed to leave meeting");
+		} finally {
+			cleanup();
+			navigate("/home");
+		}
+	}, [meeting, navigate, unbindSocketListeners]);
 
 	// MEDIA TOGGLES (persist + broadcast)
 	const toggleMute = useCallback(async () => {
