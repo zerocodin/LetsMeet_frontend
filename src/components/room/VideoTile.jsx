@@ -13,6 +13,7 @@ export default function VideoTile({
 	isLocal = false,
 	isScreenShare = false,
 	isSpeaking = false,
+	fit = "cover",
 }) {
 	const videoRef = useRef(null);
 
@@ -56,6 +57,8 @@ export default function VideoTile({
 				playsInline
 				muted={isLocal}
 				className={`h-full w-full object-cover transition-opacity ${
+					fit === "contain" ? "object-contain" : "object-cover"
+                } ${
 					participant?.isCameraOff && !isScreenShare
 						? "opacity-0"
 						: "opacity-100"
