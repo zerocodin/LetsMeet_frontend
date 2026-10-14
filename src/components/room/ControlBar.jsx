@@ -63,8 +63,8 @@ export default function ControlBar({
 	};
 
 	return (
-		<footer className="flex h-20 items-center justify-center border-t border-white/5 bg-gray-900/95 backdrop-blur">
-			<div className="flex items-center gap-1.5 px-2 sm:gap-2 sm:px-4">
+		<footer className="flex h-16 sm:h-20 items-center justify-center border-t border-white/5 bg-gray-900/95 backdrop-blur">
+    <div className="flex w-full items-center justify-center gap-1 px-1 sm:gap-2 sm:px-4 overflow-x-auto no-scrollbar">
 				{/* Mic */}
 				<ControlButton
 					onClick={onToggleMute}
