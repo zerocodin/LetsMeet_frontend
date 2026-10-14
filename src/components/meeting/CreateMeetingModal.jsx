@@ -8,7 +8,12 @@ import FriendPickerModal from "./FriendPickerModal";
 import { useMeeting } from "../../context/MeetingContext";
 import meetingService from "../../services/meeting.Service";
 
-export default function CreateMeetingModal({ open, onClose, initialMode }) {
+export default function CreateMeetingModal({
+	open,
+	onClose,
+	initialMode,
+	onCreated,
+}) {
 	const [step, setStep] = useState(initialMode || "pick");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [credentials, setCredentials] = useState(null);
@@ -56,6 +61,7 @@ export default function CreateMeetingModal({ open, onClose, initialMode }) {
 				scheduledAt: payload.scheduledAt,
 			});
 			setStep("done");
+			onCreated?.(res);
 		} catch (err) {
 			toast.error(err.message || "Failed to create meeting");
 		} finally {

@@ -219,8 +219,9 @@ export default function Meet() {
 				open={showCreate}
 				onClose={() => {
 					setShowCreate(false);
-					fetchMeetings();
+					// fetchMeetings();
 				}}
+				onCreated={fetchMeetings}
 			/>
 
 			<MeetingDetailDrawer
