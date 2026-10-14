@@ -33,6 +33,7 @@ export default function VideoGrid({
                     participant={remote.participant}
                     isLocal={false}
                     isSpeaking={activeSpeaker === remote.key}
+					fit="contain"
                 />
 
                 {/* Floating self-view */}
@@ -43,6 +44,7 @@ export default function VideoGrid({
                             participant={{ ...myParticipant, name: "You" }}
                             isLocal
                             isSpeaking={activeSpeaker === "self"}
+							fit="cover"
                         />
                     </div>
                 </div>
