@@ -21,6 +21,7 @@ import LeaveConfirmModal from "../components/room/LeaveConfirmModal";
 import ChatPanel from "../components/room/ChatPanel";
 import meetingService from "../services/meeting.Service";
 import ScreenShareView from "../components/room/ScreenShareView";
+import { supportsScreenShare } from "../utils/platform";
 
 import { isSoundEnabled, setSoundEnabled } from "../lib/sound";
 
@@ -32,6 +33,8 @@ export default function MeetingRoom() {
 	const joinedOnceRef = useRef(false);
 
 	const [soundEnabled, setSoundEnabledState] = useState(isSoundEnabled());
+
+	const screenShareAvailable = supportsScreenShare();
 
 	// const { unreadChatCount } = useMeeting();
 
@@ -287,12 +290,22 @@ export default function MeetingRoom() {
 	useRoomShortcuts({
 		onToggleMute: toggleMute,
 		onToggleCamera: toggleCamera,
-		// onToggleScreenShare: toggleScreenShare,
-		onToggleScreenShare: canShare
-			? toggleScreenShare
-			: () => {
-					toast.error(`${sharerName || "Someone"} is already sharing`);
-				},
+		// onToggleScreenShare: canShare
+		// 	? toggleScreenShare
+		// 	: () => {
+		// 			toast.error(`${sharerName || "Someone"} is already sharing`);
+		// 		},
+		onToggleScreenShare: () => {
+			if (!screenShareAvailable) {
+				toast.error("Screen sharing is only available on desktop");
+				return;
+			}
+			if (!canShare) {
+				toast.error(`${sharerName || "Someone"} is already sharing`);
+				return;
+			}
+			toggleScreenShare();
+		},
 		onToggleChat: () => {
 			setShowChat((v) => !v);
 			if (!showChat) setShowPeople(false);
@@ -460,7 +473,14 @@ export default function MeetingRoom() {
 				onToggleMute={toggleMute}
 				unreadChatCount={unreadChatCount}
 				onToggleCamera={toggleCamera}
-				onToggleScreenShare={toggleScreenShare}
+				// onToggleScreenShare={toggleScreenShare}
+				onToggleScreenShare={() => {
+					if (!screenShareAvailable) {
+						toast.error("Screen sharing is only available on desktop");
+						return;
+					}
+					toggleScreenShare();
+				}}
 				canShare={canShare}
 				sharerName={sharerName}
 				onToggleChat={() => {
