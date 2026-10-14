@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { MicOff, MonitorUp, Crown, Shield } from "lucide-react";
+import { MicOff, MonitorUp, Crown, Shield, Hand } from "lucide-react";
 
 /**
  * @param {MediaStream|null} stream
@@ -61,7 +61,6 @@ export default function VideoTile({
 						: "opacity-100"
 				} ${!isScreenShare ? "scale-x-[-1]" : ""}`}
 			/>
-
 			{/* Avatar fallback (camera off) */}
 			{participant?.isCameraOff && !isScreenShare && (
 				<div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-gray-800 to-gray-900">
@@ -78,7 +77,6 @@ export default function VideoTile({
 					)}
 				</div>
 			)}
-
 			{/* Name + badges (bottom-left) */}
 			<div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-lg bg-black/50 px-2 py-1 backdrop-blur">
 				{roleBadge}
@@ -87,7 +85,6 @@ export default function VideoTile({
 				</span>
 				{participant?.isMuted && <MicOff className="h-3 w-3 text-red-400" />}
 			</div>
-
 			{/* Screen-share badge (top-left) */}
 			{isScreenShare && (
 				<div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-lg bg-emerald-500/90 px-2 py-1 text-xs font-semibold text-white backdrop-blur">
@@ -96,6 +93,13 @@ export default function VideoTile({
 				</div>
 			)}
 
+			{/* Hand raise */}
+			{participant?.handRaised && (
+				<div className="absolute right-2 top-2 flex items-center gap-1.5 rounded-lg bg-amber-500/95 px-2 py-1 text-xs font-semibold text-white shadow-lg">
+					<Hand className="h-3 w-3" />
+				</div>
+			)}
+			
 			{/* Speaking indicator (subtle ring) — placeholder for now */}
 			{participant?.isSpeaking && (
 				<div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-emerald-400/70" />

@@ -16,6 +16,7 @@ import {
 	VolumeX,
 	Maximize,
 	Minimize,
+	Hand,
 } from "lucide-react";
 
 export default function ControlBar({
@@ -29,6 +30,8 @@ export default function ControlBar({
 	onToggleScreenShare,
 	onToggleChat,
 	onTogglePeople,
+	onToggleHand,
+	isHandRaised,
 	onLeave,
 	isHost,
 	isRecording,
@@ -80,6 +83,14 @@ export default function ControlBar({
 					variant={isCameraOff ? "danger" : "neutral"}
 				/>
 
+				{/* Raised Hand */}
+				<ControlButton
+					onClick={onToggleHand}
+					active={isHandRaised}
+					icon={Hand}
+					label={isHandRaised ? "Lower hand" : "Raise hand"}
+					variant={isHandRaised ? "warning" : "neutral"}
+				/>
 				{/* Screen share */}
 				<ControlButton
 					onClick={canShare ? onToggleScreenShare : undefined}
@@ -199,6 +210,7 @@ function ControlButton({
 		success: "bg-emerald-500 text-white hover:bg-emerald-600",
 		danger: "bg-red-500/90 text-white hover:bg-red-600",
 		disabled: "bg-white/5 text-gray-600 cursor-not-allowed",
+		warning: "bg-amber-500 text-white hover:bg-amber-600",
 	};
 
 	return (

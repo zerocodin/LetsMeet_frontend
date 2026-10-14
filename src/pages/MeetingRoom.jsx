@@ -52,6 +52,8 @@ export default function MeetingRoom() {
 		toggleCamera,
 		toggleScreenShare,
 		peerConnections,
+		isHandRaised,
+		toggleHand,
 		localStreamRef: contextLocalStreamRef,
 		hostMute,
 		hostUnmute,
@@ -303,6 +305,7 @@ export default function MeetingRoom() {
 	useRoomShortcuts({
 		onToggleMute: toggleMute,
 		onToggleCamera: toggleCamera,
+		onToggleHand: toggleHand,
 		// onToggleScreenShare: canShare
 		// 	? toggleScreenShare
 		// 	: () => {
@@ -513,6 +516,8 @@ export default function MeetingRoom() {
 						onToggleMute={toggleMute}
 						unreadChatCount={unreadChatCount}
 						onToggleCamera={toggleCamera}
+						isHandRaised={isHandRaised}
+						onToggleHand={toggleHand}
 						// onToggleScreenShare={toggleScreenShare}
 						onToggleScreenShare={() => {
 							if (!screenShareAvailable) {

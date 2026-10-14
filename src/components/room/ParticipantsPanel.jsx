@@ -13,6 +13,7 @@ import {
 	UserCheck,
 	ChevronUp,
 	ChevronDown,
+	Hand,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -45,6 +46,7 @@ export default function ParticipantsPanel({
 			isMuted: myParticipant?.isMuted,
 			isCameraOff: myParticipant?.isCameraOff,
 			isScreenSharing: myParticipant?.isScreenSharing,
+			handRaised: myParticipant?.handRaised,
 		},
 		...participants.map((p) => ({
 			_id: p.userId,
@@ -60,11 +62,14 @@ export default function ParticipantsPanel({
 			isMuted: p.isMuted,
 			isCameraOff: p.isCameraOff,
 			isScreenSharing: p.isScreenSharing,
+			handRaised: p.handRaised,
 		})),
 	];
 
 	// Sort: host first, then co-hosts, then participants (alphabetical)
 	allParticipants.sort((a, b) => {
+		if (a.handRaised !== b.handRaised) return a.handRaised ? -1 : 1;
+
 		const order = { HOST: 0, COHOST: 1, PARTICIPANT: 2 };
 		if (order[a.role] !== order[b.role]) return order[a.role] - order[b.role];
 		return (a.user?.name || "").localeCompare(b.user?.name || "");
@@ -201,6 +206,9 @@ function ParticipantRow({
 
 			{/* Status icons */}
 			<div className="flex items-center gap-1">
+				{participant.handRaised && (
+					<Hand className="h-3.5 w-3.5 text-amber-400" />
+				)}
 				{participant.isMuted ? (
 					<MicOff className="h-3.5 w-3.5 text-red-400" />
 				) : (

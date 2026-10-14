@@ -63,6 +63,10 @@ export const useRoomShortcuts = (handlers) => {
 						handlers.onToggleRecording();
 					}
 					break;
+				case "h":
+					e.preventDefault();
+					handlers.onToggleHand?.();
+					break;
 				case "escape":
 					e.preventDefault();
 					handlers.onLeave?.();

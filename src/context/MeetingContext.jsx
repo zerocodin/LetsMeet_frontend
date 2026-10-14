@@ -8,8 +8,8 @@ import React, {
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useEffect } from "react";
-import { useAuth } from "./AuthContext";
 
+import { useAuth } from "./AuthContext";
 import chatService from "../services/chat.Service";
 import meetingService from "../services/meeting.Service";
 import { getSocket, connectSocket, disconnectSocket } from "../lib/socket";
@@ -24,9 +24,12 @@ export function MeetingProvider({ children }) {
 	const [myParticipant, setMyParticipant] = useState(null); // { _id, role, ... }
 	const [participants, setParticipants] = useState([]); // live list (from socket)
 	const [status, setStatus] = useState("IDLE"); // IDLE | WAITING | JOINED | ENDED
+	const [isHandRaised, setIsHandRaised] = useState(false);
 
 	const { user } = useAuth();
 	const myUserIdRef = useRef(null);
+
+	const prevParticipantsRef = useRef(new Map());
 
 	useEffect(() => {
 		myUserIdRef.current = user?._id || null;
@@ -90,6 +93,7 @@ export function MeetingProvider({ children }) {
 		setMeeting(null);
 		setMyParticipant(null);
 		setParticipants([]);
+		setIsHandRaised(false);
 		navigate("/home");
 	}, [navigate, unbindSocketListeners]);
 
@@ -114,6 +118,27 @@ export function MeetingProvider({ children }) {
 
 		// Media state update (mute / camera / screen-share)
 		socket.on("participant-state-changed", (update) => {
+			// Look up the target from the previous snapshot
+			const target = prevParticipantsRef.current.get(update.socketId);
+
+			// Fire toast outside of setParticipants (this avoids the React warning)
+			if (
+				target &&
+				typeof update.handRaised === "boolean" &&
+				target.handRaised !== update.handRaised
+			) {
+				if (update.handRaised) {
+					toast(`${target.name || "Someone"} raised their hand ✋`, {
+						duration: 3000,
+					});
+				} else {
+					toast(`${target.name || "Someone"} lowered their hand`, {
+						duration: 2000,
+					});
+				}
+			}
+
+			// Then update state normally
 			setParticipants((prev) =>
 				prev.map((p) =>
 					p.socketId === update.socketId ? { ...p, ...update } : p,
@@ -346,6 +371,12 @@ export function MeetingProvider({ children }) {
 		};
 	}, [meeting?._id, status]);
 
+	useEffect(() => {
+		const map = new Map();
+		participants.forEach((p) => map.set(p.socketId, p));
+		prevParticipantsRef.current = map;
+	}, [participants]);
+
 	// JOIN MEETING
 	const joinByCode = useCallback(
 		async ({ meetingCode, password }) => {
@@ -370,6 +401,7 @@ export function MeetingProvider({ children }) {
 					// setIsCameraOff(res.data.participant.isCameraOff);
 					setIsCameraOff(true);
 					setIsScreenSharing(res.data.participant.isScreenSharing);
+					setIsHandRaised(res.data.participant.handRaised || false);
 
 					// Connect socket + bind listeners
 					connectSocket();
@@ -422,6 +454,8 @@ export function MeetingProvider({ children }) {
 					setMyParticipant(res.data.participant);
 					setIsMuted(true);
 					// setIsCameraOff(res.data.participant.isCameraOff);
+					setIsHandRaised(res.data.participant.handRaised || false);
+
 					setIsCameraOff(true);
 					setIsScreenSharing(res.data.participant.isScreenSharing);
 
@@ -451,6 +485,30 @@ export function MeetingProvider({ children }) {
 		},
 		[bindSocketListeners],
 	);
+
+	const toggleHand = useCallback(async () => {
+		if (!meeting?._id) return;
+
+		const next = !isHandRaised;
+
+		setIsHandRaised(next);
+		setMyParticipant((p) => (p ? { ...p, handRaised: next } : p));
+
+		if (next) {
+			toast("You raised your hand ✋", { duration: 2500 });
+		} else {
+			toast("You lowered your hand", { duration: 1500 });
+		}
+
+		const socket = getSocket();
+		if (socket?.connected) socket.emit("toggle-hand", { handRaised: next });
+
+		try {
+			await meetingService.updateMyState(meeting._id, { handRaised: next });
+		} catch (err) {
+			console.error("Failed to persist hand state:", err);
+		}
+	}, [meeting, isHandRaised]);
 
 	// LEAVE / END
 	/*const leave = useCallback(async () => {
@@ -520,6 +578,7 @@ export function MeetingProvider({ children }) {
 			setMeeting(null);
 			setMyParticipant(null);
 			setParticipants([]);
+			setIsHandRaised(false);
 			setStatus("IDLE");
 		};
 
@@ -795,6 +854,7 @@ export function MeetingProvider({ children }) {
 		isCameraOff,
 		isScreenSharing,
 		remoteIsRecording,
+		isHandRaised,
 
 		// refs (for WebRTC hook)
 		peerConnections,
@@ -811,6 +871,7 @@ export function MeetingProvider({ children }) {
 		toggleScreenShare,
 		broadcastRecordingStart,
 		broadcastRecordingStop,
+		toggleHand,
 
 		// chat
 		messages,
