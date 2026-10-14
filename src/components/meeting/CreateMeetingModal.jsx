@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Video, CalendarPlus } from "lucide-react";
 import toast from "react-hot-toast";
 import Modal from "../ui/Modal";
@@ -30,6 +30,14 @@ export default function CreateMeetingModal({ open, onClose, initialMode }) {
 		setPickerOpen(false);
 		setPostCreatePickerOpen(false);
 	};
+
+	useEffect(() => {
+		if (open) {
+			setStep(initialMode || "pick");
+			setCredentials(null);
+			setIsSubmitting(false);
+		}
+	}, [open, initialMode]);
 
 	const handleClose = () => {
 		if (isSubmitting) return;
@@ -154,8 +162,6 @@ export default function CreateMeetingModal({ open, onClose, initialMode }) {
 					/>
 				)}
 			</Modal>
-
-			
 		</>
 	);
 }
