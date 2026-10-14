@@ -8,3 +8,18 @@
 .animate-blob          { animation: blob 12s infinite ease-in-out; }
 .animation-delay-2000  { animation-delay: 2s; }
 .animation-delay-4000  { animation-delay: 4s; }
+
+html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;               /* prevent page scroll on mobile */
+    overscroll-behavior: none;      /* prevent pull-to-refresh bounce */
+}
+
+/* Use dynamic viewport height so mobile browser chrome doesn't cut into the app */
+.h-screen-dynamic {
+    height: 100vh;
+    height: 100dvh;                 /* modern browsers */
+    height: 100svh;                 /* older fallback if needed */
+}
