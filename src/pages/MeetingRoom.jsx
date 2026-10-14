@@ -354,7 +354,7 @@ export default function MeetingRoom() {
 	// Render
 	if (bootstrapping || !meeting) {
 		return (
-			<div className="flex h-screen flex-col items-center justify-center gap-3 bg-gray-950">
+			<div className="flex h-screen-dynamic flex-col items-center justify-center gap-3 bg-gray-950">
 				<Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
 				<p className="text-sm text-gray-400">Entering meeting...</p>
 			</div>
@@ -362,7 +362,7 @@ export default function MeetingRoom() {
 	}
 
 	return (
-		<div className="flex h-screen flex-col bg-gray-950">
+		<div className="flex h-screen-dynamic flex-col bg-gray-950">
 			<RoomHeader
 				meeting={meeting}
 				participantCount={participants.length + 1}

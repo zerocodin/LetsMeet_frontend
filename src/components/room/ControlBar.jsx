@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import {
 	Mic,
 	MicOff,
@@ -14,6 +14,8 @@ import {
 	Square,
 	Volume2,
 	VolumeX,
+	Maximize,
+	Minimize,
 } from "lucide-react";
 
 export default function ControlBar({
@@ -37,6 +39,26 @@ export default function ControlBar({
 	canShare = true,
 	sharerName,
 }) {
+	const [isFullscreen, setIsFullscreen] = useState(false);
+
+	useEffect(() => {
+		const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+		document.addEventListener("fullscreenchange", onFsChange);
+		return () => document.removeEventListener("fullscreenchange", onFsChange);
+	}, []);
+
+	const toggleFullscreen = async () => {
+		try {
+			if (!document.fullscreenElement) {
+				await document.documentElement.requestFullscreen();
+			} else {
+				await document.exitFullscreen();
+			}
+		} catch (err) {
+			console.error("Fullscreen toggle failed:", err);
+		}
+	};
+
 	return (
 		<footer className="flex h-20 items-center justify-center border-t border-white/5 bg-gray-900/95 backdrop-blur">
 			<div className="flex items-center gap-1.5 px-2 sm:gap-2 sm:px-4">
@@ -110,6 +132,15 @@ export default function ControlBar({
 					icon={Users}
 					label="People"
 					variant={showPeople ? "primary" : "neutral"}
+				/>
+
+				{/* Fullscreen */}
+				<ControlButton
+					onClick={toggleFullscreen}
+					active={isFullscreen}
+					icon={isFullscreen ? Minimize : Maximize}
+					label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+					variant="neutral"
 				/>
 
 				{/* <ControlButton
