@@ -82,7 +82,7 @@ export default function Sidebar() {
 			</div>
 
 			{/* Nav links */}
-			<nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-3">
+			<nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-3 min-h-0">
 				{links.map(({ to, label, icon: Icon, end }) => (
 					<NavLink
 						key={to}
@@ -185,7 +185,7 @@ export default function Sidebar() {
 
 			{/* Drawer */}
 			<aside
-				className={`fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-white/40 bg-white shadow-2xl transition-transform duration-200 lg:hidden ${
+				className={`fixed left-0 top-0 z-50 flex h-screen-dynamic w-72 flex-col border-r border-white/40 bg-white shadow-2xl transition-transform duration-200 lg:hidden ${
 					mobileOpen ? "translate-x-0" : "-translate-x-full"
 				}`}
 			>
