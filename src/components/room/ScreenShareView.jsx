@@ -1,13 +1,7 @@
-import React from "react";
-import { MonitorUp, Crown } from "lucide-react";
+import React, { useState } from "react";
+import { MonitorUp, Crown, ChevronDown, ChevronUp, Users } from "lucide-react";
 import VideoTile from "./VideoTile";
 
-/**
- * Full-screen layout used when someone is sharing their screen.
- *
- * @param {Object}   props.sharer         — { isSelf, name, username, profileImage, role, socketId }
- * @param {Array}    props.participants   — remote participants (excludes self)
- */
 export default function ScreenShareView({
 	sharer,
 	sharerStream,
@@ -17,10 +11,11 @@ export default function ScreenShareView({
 	participants,
 	activeSpeaker,
 }) {
+	const [showThumbs, setShowThumbs] = useState(true);
+
 	// Build a thumbnail list = everyone EXCEPT the sharer
 	const thumbs = [];
 
-	// Add self if self isn't the sharer
 	if (!sharer.isSelf) {
 		thumbs.push({
 			key: "self",
@@ -31,9 +26,8 @@ export default function ScreenShareView({
 		});
 	}
 
-	// Add remote participants (excluding the sharer)
 	participants.forEach((p) => {
-		if (p.socketId === sharer.socketId) return; // skip sharer
+		if (p.socketId === sharer.socketId) return;
 		thumbs.push({
 			key: p.socketId,
 			stream: remoteStreams.get(p.socketId) || null,
@@ -49,7 +43,6 @@ export default function ScreenShareView({
 		<div className="flex h-full w-full flex-col bg-gray-950">
 			{/* Big screen-share tile */}
 			<div className="relative flex-1 overflow-hidden">
-				{/* Screen-share stream */}
 				{sharerStream ? (
 					<video
 						autoPlay
@@ -69,7 +62,7 @@ export default function ScreenShareView({
 					</div>
 				)}
 
-				{/* Overlay badge */}
+				{/* Overlay badge (top-left) */}
 				<div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
 					<MonitorUp className="h-3.5 w-3.5" />
 					{sharerName} is sharing{sharer.isSelf ? "" : "'s screen"}
@@ -77,10 +70,30 @@ export default function ScreenShareView({
 						<Crown className="ml-1 h-3.5 w-3.5 text-amber-200" />
 					)}
 				</div>
+
+				{/* Hide/Show thumbnails toggle — bottom-right */}
+				{thumbs.length > 0 && (
+					<button
+						onClick={() => setShowThumbs((v) => !v)}
+						className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-lg bg-black/60 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-black/80"
+						title={showThumbs ? "Hide participants" : "Show participants"}
+					>
+						<Users className="h-3.5 w-3.5" />
+						{showThumbs ? (
+							<>
+								Hide <ChevronDown className="h-3.5 w-3.5" />
+							</>
+						) : (
+							<>
+								Show ({thumbs.length}) <ChevronUp className="h-3.5 w-3.5" />
+							</>
+						)}
+					</button>
+				)}
 			</div>
 
-			{/* Thumbnail strip */}
-			{thumbs.length > 0 && (
+			{/* Thumbnail strip — collapsible */}
+			{showThumbs && thumbs.length > 0 && (
 				<div className="shrink-0 border-t border-white/5 bg-gray-900/95 p-2 backdrop-blur">
 					<div className="flex gap-2 overflow-x-auto">
 						{thumbs.map((t) => (
