@@ -191,6 +191,25 @@ function NotificationRow({ notification: n, onClick, onDelete }) {
 
 	const timeAgo = formatTimeAgo(n.createdAt);
 
+
+let bodyText = n.body;
+
+if (
+    (n.type === "MEETING_INVITE" || n.type === "MEETING_STARTING") &&
+    n.meta?.scheduledAt
+) {
+    const when = new Date(n.meta.scheduledAt).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+    });
+    const inviter = n.from?.name || n.meta?.inviterName || "Someone";
+
+    bodyText =
+        n.type === "MEETING_INVITE"
+            ? `${inviter} invited you to a meeting on ${when}`
+            : `Starts ${when}`;
+}
+	
 	return (
 		<li
 			onClick={onClick}
@@ -239,7 +258,7 @@ function NotificationRow({ notification: n, onClick, onDelete }) {
 					</div>
 
 					{n.body && (
-						<p className="mt-1 line-clamp-2 text-sm text-gray-600">{n.body}</p>
+						<p className="mt-1 line-clamp-2 text-sm text-gray-600">{bodyText}</p>
 					)}
 
 					{n.from && (
