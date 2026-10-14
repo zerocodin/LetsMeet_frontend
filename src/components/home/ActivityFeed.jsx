@@ -66,6 +66,25 @@ function ActivityRow({ event }) {
 	const timeAgo = formatTimeAgo(event.createdAt);
 	const avatar = event.meta?.profileImage || event.meta?.from?.profileImage;
 
+	let subtitle = event.subtitle;
+
+if (
+    (event.kind === "MEETING_INVITE" || event.kind === "MEETING_STARTING") &&
+    event.meta?.scheduledAt
+) {
+    const when = new Date(event.meta.scheduledAt).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+    });
+    const inviter =
+        event.meta?.from?.name || event.meta?.inviterName || "Someone";
+
+    subtitle =
+        event.kind === "MEETING_INVITE"
+            ? `${inviter} invited you to a meeting on ${when}`
+            : `Starts ${when}`;
+}
+	
 	const inner = (
 		<div className="flex items-start gap-3 rounded-2xl border border-white/60 bg-white/70 p-4 shadow-sm backdrop-blur transition-all hover:-translate-y-0.5 hover:shadow-md">
 			{/* Avatar if available, else icon */}
@@ -91,9 +110,9 @@ function ActivityRow({ event }) {
 					</p>
 					<span className="shrink-0 text-xs text-gray-400">{timeAgo}</span>
 				</div>
-				{event.subtitle && (
+				{subtitle && (
 					<p className="mt-0.5 line-clamp-2 text-xs text-gray-500">
-						{event.subtitle}
+						{subtitle}
 					</p>
 				)}
 			</div>
