@@ -112,13 +112,13 @@ export default function ControlBar({
 					variant={showPeople ? "primary" : "neutral"}
 				/>
 
-				<ControlButton
+				{/* <ControlButton
 					onClick={onToggleSound}
 					active={soundEnabled}
 					icon={soundEnabled ? Volume2 : VolumeX}
 					label={soundEnabled ? "Mute notifications" : "Unmute notifications"}
 					variant={soundEnabled ? "neutral" : "neutral"}
-				/>
+				/> */}
 
 				<div className="mx-1 h-8 w-px bg-white/10" />
 
