@@ -71,6 +71,7 @@ export default function MeetingRoom() {
 	const [localScreenStream, setLocalScreenStream] = useState(null);
 
 	const [localStream, setLocalStream] = useState(null);
+	const [controlsHidden, setControlsHidden] = useState(false);
 
 	const [remoteStreams, setRemoteStreams] = useState(new Map());
 	const [bootstrapping, setBootstrapping] = useState(true);
@@ -186,6 +187,17 @@ export default function MeetingRoom() {
 					role: remoteSharer.role,
 				}
 			: null;
+
+	useEffect(() => {
+		if (!activeSharer) setControlsHidden(false);
+	}, [activeSharer]);
+
+	const toggleControls = (e) => {
+		if (!activeSharer) return;
+		if (e.target.closest("button") || e.target.closest("input")) return;
+		if (e.target.closest("aside")) return;
+		setControlsHidden((v) => !v);
+	};
 
 	// The stream to render for the sharer
 	const sharerStream = activeSharer
@@ -362,14 +374,30 @@ export default function MeetingRoom() {
 	}
 
 	return (
-		<div className="flex h-screen-dynamic flex-col bg-gray-950">
-			<RoomHeader
-				meeting={meeting}
-				participantCount={participants.length + 1}
-				startedAt={meeting.startedAt || meeting.scheduledAt}
-				isAnyoneRecording={isRecording || remoteIsRecording}
-				recordingBy={isRecording ? "you" : remoteIsRecording ? "host" : null}
-			/>
+		<div
+			className="relative flex h-screen-dynamic flex-col bg-gray-950"
+			onClick={toggleControls}
+		>
+			{/* Header — hidden when controlsHidden and sharing */}
+			<div
+				className={`grid transition-all duration-300 ${
+					controlsHidden && activeSharer
+						? "grid-rows-[0fr] opacity-0 pointer-events-none"
+						: "grid-rows-[1fr] opacity-100"
+				}`}
+			>
+				<div className="overflow-hidden">
+					<RoomHeader
+						meeting={meeting}
+						participantCount={participants.length + 1}
+						startedAt={meeting.startedAt || meeting.scheduledAt}
+						isAnyoneRecording={isRecording || remoteIsRecording}
+						recordingBy={
+							isRecording ? "you" : remoteIsRecording ? "host" : null
+						}
+					/>
+				</div>
+			</div>
 
 			<main className="flex flex-1 overflow-hidden">
 				{/* Video area */}
@@ -386,6 +414,7 @@ export default function MeetingRoom() {
 								isCameraOff,
 								isScreenSharing,
 							}}
+							hideThumbs={controlsHidden}
 							remoteStreams={remoteStreams}
 							participants={participants}
 							activeSpeaker={activeSpeaker}
@@ -461,38 +490,49 @@ export default function MeetingRoom() {
 				)}
 			</main>
 
-			<ControlBar
-				isMuted={isMuted}
-				isCameraOff={isCameraOff}
-				isScreenSharing={isScreenSharing}
-				showChat={showChat}
-				showPeople={showPeople}
-				isHost={myParticipant?.role === "HOST"}
-				isRecording={isRecording}
-				onToggleRecording={handleToggleRecording}
-				onToggleMute={toggleMute}
-				unreadChatCount={unreadChatCount}
-				onToggleCamera={toggleCamera}
-				// onToggleScreenShare={toggleScreenShare}
-				onToggleScreenShare={() => {
-					if (!screenShareAvailable) {
-						toast.error("Screen sharing is only available on desktop");
-						return;
-					}
-					toggleScreenShare();
-				}}
-				canShare={canShare}
-				sharerName={sharerName}
-				onToggleChat={() => {
-					setShowChat((v) => !v);
-					if (!showChat) setShowPeople(false);
-				}}
-				onTogglePeople={() => {
-					setShowPeople((v) => !v);
-					if (!showPeople) setShowChat(false);
-				}}
-				onLeave={() => setShowLeaveModal(true)}
-			/>
+			{/* ControlBar — hidden when controlsHidden and sharing */}
+			<div
+				className={`grid transition-all duration-300 ${
+					controlsHidden && activeSharer
+						? "grid-rows-[0fr] opacity-0 pointer-events-none"
+						: "grid-rows-[1fr] opacity-100"
+				}`}
+			>
+				<div className="overflow-hidden">
+					<ControlBar
+						isMuted={isMuted}
+						isCameraOff={isCameraOff}
+						isScreenSharing={isScreenSharing}
+						showChat={showChat}
+						showPeople={showPeople}
+						isHost={myParticipant?.role === "HOST"}
+						isRecording={isRecording}
+						onToggleRecording={handleToggleRecording}
+						onToggleMute={toggleMute}
+						unreadChatCount={unreadChatCount}
+						onToggleCamera={toggleCamera}
+						// onToggleScreenShare={toggleScreenShare}
+						onToggleScreenShare={() => {
+							if (!screenShareAvailable) {
+								toast.error("Screen sharing is only available on desktop");
+								return;
+							}
+							toggleScreenShare();
+						}}
+						canShare={canShare}
+						sharerName={sharerName}
+						onToggleChat={() => {
+							setShowChat((v) => !v);
+							if (!showChat) setShowPeople(false);
+						}}
+						onTogglePeople={() => {
+							setShowPeople((v) => !v);
+							if (!showPeople) setShowChat(false);
+						}}
+						onLeave={() => setShowLeaveModal(true)}
+					/>
+				</div>
+			</div>
 
 			<LeaveConfirmModal
 				open={showLeaveModal}
