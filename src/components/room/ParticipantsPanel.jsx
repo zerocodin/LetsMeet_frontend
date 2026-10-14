@@ -23,6 +23,7 @@ export default function ParticipantsPanel({
 	isHost,
 	onMute,
 	onUnmute,
+	onMuteAll,
 	onRemove,
 	onPromote,
 	onDemote,
@@ -69,6 +70,10 @@ export default function ParticipantsPanel({
 		return (a.user?.name || "").localeCompare(b.user?.name || "");
 	});
 
+	// Count how many remote participants are currently unmuted
+	const unmutedCount = participants.filter((p) => !p.isMuted).length;
+	const canMuteAll = isHost && unmutedCount > 0;
+
 	return (
 		<div className="flex h-full flex-col">
 			{/* Header */}
@@ -76,6 +81,18 @@ export default function ParticipantsPanel({
 				<h3 className="text-sm font-semibold text-white">
 					Participants ({allParticipants.length})
 				</h3>
+
+				{isHost && (
+					<button
+						onClick={onMuteAll}
+						disabled={!canMuteAll}
+						className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-semibold text-gray-200 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+						title="Mute everyone except yourself"
+					>
+						<MicOff className="h-3.5 w-3.5" />
+						Mute all
+					</button>
+				)}
 			</div>
 
 			{/* List */}

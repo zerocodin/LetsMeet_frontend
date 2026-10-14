@@ -55,6 +55,7 @@ export default function MeetingRoom() {
 		localStreamRef: contextLocalStreamRef,
 		hostMute,
 		hostUnmute,
+		hostMuteAll,
 		hostRemove,
 		hostPromote,
 		hostDemote,
@@ -477,6 +478,7 @@ export default function MeetingRoom() {
 									isHost={isHost}
 									onMute={hostMute}
 									onUnmute={hostUnmute}
+									onMuteAll={hostMuteAll}
 									onRemove={hostRemove}
 									onPromote={hostPromote}
 									onDemote={hostDemote}

@@ -621,6 +621,30 @@ export function MeetingProvider({ children }) {
 		[meeting],
 	);
 
+	const hostMuteAll = useCallback(async () => {
+		if (!meeting?._id) return;
+		try {
+			const res = await meetingService.muteAllParticipants(meeting._id);
+
+			// Broadcast force-mute to every remote participant's socket
+			const socket = getSocket();
+			if (socket?.connected) {
+				participants.forEach((p) => {
+					if (p.socketId) {
+						socket.emit("host-mute-user", { targetSocketId: p.socketId });
+					}
+				});
+			}
+
+			// Optimistic update
+			setParticipants((prev) => prev.map((p) => ({ ...p, isMuted: true })));
+
+			toast.success(res.message || "All participants muted");
+		} catch (err) {
+			toast.error(err.message || "Failed to mute all");
+		}
+	}, [meeting, participants]);
+
 	const hostUnmute = useCallback(
 		async (participantId, targetSocketId) => {
 			if (!meeting?._id) return;
@@ -806,6 +830,7 @@ export function MeetingProvider({ children }) {
 		// host
 		hostMute,
 		hostUnmute,
+		hostMuteAll,
 		hostRemove,
 		hostPromote,
 		hostDemote,

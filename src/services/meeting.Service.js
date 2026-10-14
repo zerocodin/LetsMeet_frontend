@@ -153,6 +153,15 @@ const meetingService = {
 		}
 	},
 
+	muteAllParticipants: async (meetingId) => {
+		try {
+			const { data } = await api.patch(`/${meetingId}/participants/mute-all`);
+			return data;
+		} catch (error) {
+			throw error.response?.data || { message: "Failed to mute all" };
+		}
+	},
+
 	unmuteParticipant: async (meetingId, participantId) => {
 		try {
 			const { data } = await api.patch(
