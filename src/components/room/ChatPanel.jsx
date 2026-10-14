@@ -129,7 +129,7 @@ export default function ChatPanel({ meetingId }) {
 								<div className="space-y-3">
 									{items.map((msg) => {
 										const isMine = msg.from?.userId === user?._id;
-										const canDelete = isMine || isHost;
+										const canDelete = isMine;
 
 										return (
 											<ChatMessage
@@ -247,7 +247,7 @@ function ChatMessage({ message, isMine, canDelete, onDelete }) {
 				{canDelete && (
 					<button
 						onClick={onDelete}
-						className="mb-1 rounded p-0.5 text-gray-500 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
+						className="mb-1 rounded p-0.5 text-gray-500 opacity-5 transition-opacity hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
 						title="Delete message"
 					>
 						<Trash2 className="h-3 w-3" />
