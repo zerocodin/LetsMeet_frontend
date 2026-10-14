@@ -102,7 +102,6 @@ export const useWebRTC = ({
 
 			// Connection state tracking
 			pc.onconnectionstatechange = () => {
-				console.log(`[PC ${remoteSocketId}] state: ${pc.connectionState}`);
 				if (
 					pc.connectionState === "failed" ||
 					pc.connectionState === "closed"

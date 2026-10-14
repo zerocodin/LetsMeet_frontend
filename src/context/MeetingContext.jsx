@@ -197,8 +197,23 @@ export function MeetingProvider({ children }) {
 			chatSeenIdsRef.current = new Set();
 			res.data.forEach((m) => chatSeenIdsRef.current.add(m._id));
 
-			setMessages(res.data);
+			const normalized = res.data.map((m) => ({
+				_id: m._id,
+				meeting: m.meeting,
+				from: {
+					userId: m.user?._id || m.user,
+					name: m.senderName || "Guest",
+					username: m.senderUsername || "",
+					profileImage: m.senderProfileImage || "",
+				},
+				message: m.message,
+				sentAt: m.createdAt,
+				type: m.type,
+			}));
+
+			setMessages(normalized);
 			setChatHasMore(!!res.hasMore);
+
 			chatCursorRef.current = res.nextCursor;
 		} catch (err) {
 			toast.error(err.message || "Failed to load chat");
@@ -235,7 +250,22 @@ export function MeetingProvider({ children }) {
 				limit: 50,
 			});
 
-			const fresh = res.data.filter((m) => !chatSeenIdsRef.current.has(m._id));
+			const fresh = res.data
+				.map((m) => ({
+					_id: m._id,
+					meeting: m.meeting,
+					from: {
+						userId: m.user?._id || m.user,
+						name: m.senderName || "Guest",
+						username: m.senderUsername || "",
+						profileImage: m.senderProfileImage || "",
+					},
+					message: m.message,
+					sentAt: m.createdAt,
+					type: m.type,
+				}))
+				.filter((m) => !chatSeenIdsRef.current.has(m._id));
+
 			fresh.forEach((m) => chatSeenIdsRef.current.add(m._id));
 
 			setMessages((prev) => [...fresh, ...prev]);
