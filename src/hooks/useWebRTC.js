@@ -61,13 +61,30 @@ export const useWebRTC = ({
 
 			const pc = new RTCPeerConnection(RTC_CONFIG);
 
+			// Decide which video track to send
+			const screenStream = screenStreamRef.current;
+			const weAreSharing = !!screenStream;
+
+			const outgoingVideoTrack = weAreSharing
+				? screenStream.getVideoTracks()[0]
+				: localStream.getVideoTracks()[0];
+
+			// Add audio (always the mic track)
+			const audioTrack = localStream.getAudioTracks()[0];
+			if (audioTrack) pc.addTrack(audioTrack, localStream);
+
+			// Add video (screen if we're sharing, else camera)
+			if (outgoingVideoTrack) {
+				pc.addTrack(
+					outgoingVideoTrack,
+					weAreSharing ? screenStream : localStream,
+				);
+			}
+
 			//  Attach local tracks so remote sees/hears us
-			// const localStream = localStreamRef.current;
-			// if (localStream) {
-			localStream.getTracks().forEach((track) => {
-				pc.addTrack(track, localStream);
-			});
-			// }
+			// localStream.getTracks().forEach((track) => {
+			// 	pc.addTrack(track, localStream);
+			// });
 
 			// Receive remote tracks
 			const remoteStream = new MediaStream();
@@ -138,7 +155,7 @@ export const useWebRTC = ({
 			peerConnections.current.set(remoteSocketId, pc);
 			return pc;
 		},
-		[localStreamRef, peerConnections],
+		[localStreamRef, screenStreamRef, peerConnections],
 	);
 
 	// INITIATE OFFER (new joiner → existing participants)
